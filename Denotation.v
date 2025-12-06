@@ -1,6 +1,6 @@
 From stdpp Require Import mapset.
 From stdpp Require Import natmap.
-From Coq.Program Require Import Wf.
+From Stdlib.Program Require Import Wf.
 From CT Require Import CoreLangProp.
 From CT Require Import OperationalSemantics.
 From CT Require Import BasicTypingProp.

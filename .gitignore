@@ -1,3 +1,5 @@
+.vscode/*
+Makefile*
 .*.aux
 .*.d
 *.a

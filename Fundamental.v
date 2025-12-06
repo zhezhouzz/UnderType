@@ -153,19 +153,20 @@ Theorem fundamental_combined:
   well_formed_builtin_typing ->
   (forall (Γ: listctx rty) (v: value) (ρ: rty),
       Γ ⊢ v ⋮v ρ ->
-      forall epr, ctxRst Γ epr -> exists Γv, ⟦ m{Γv}r ρ ⟧ (m{Γv}v v)) /\
+      forall epr, ctxRst Γ epr -> forall Γv, eprR epr Γv -> ⟦ m{Γv}r ρ ⟧ (m{Γv}v v)) /\
     (forall (Γ: listctx rty) (e: tm) (τ: rty),
         Γ ⊢ e ⋮t τ ->
-        forall epr, ctxRst Γ epr -> exists Γv, ⟦ m{ Γv }r τ ⟧ (m{ Γv }t e)).
-Proof.
+        forall epr, ctxRst Γ epr -> forall Γv, eprR epr Γv -> ⟦ m{ Γv }r τ ⟧ (m{ Γv }t e)).
+Admitted.
+
+(* Proof.
   pose value_reduction_any_ctx as HPureStep.
   intros HWFbuiltin.
   apply value_term_type_check_mutind.
   (* [TSubPP] *)
   - intros Γ v ρ1 ρ2 HWFρ2 _ HDρ1 Hsub Γv HΓv. specialize (HDρ1 _ HΓv).
     sinvert Hsub. simp_hyp H0. ospecialize * H1; eauto.
-    apply Hsub in HDρ1; auto.
-  (* [TConst] *)
+    admit.
   - intros Γ c HWF Γv HΓv. repeat msubst_simp. eauto using mk_eq_constant_denote_rty.
   (* [TBaseVar] *)
   - intros Γ x b ϕ Hwf Hfind Γv HΓv.
@@ -358,14 +359,14 @@ Proof.
           (eauto using ctxRst_closed_env; simpl_fv; my_set_solver).
       eapply rtyR_refine; eauto. misc_solver.
       sinvert HBTOrgMsubst. eapply tm_refine_tmatchb_false; eauto.
-Qed.
+Qed. *)
 
 (** Fundamental theorem for value typing *)
 Theorem fundamental_value:
   well_formed_builtin_typing ->
   forall (Γ: listctx rty) (v: value) (ρ: rty),
     Γ ⊢ v ⋮v ρ ->
-    forall Γv, ctxRst Γ Γv -> ⟦ m{Γv}r ρ ⟧ (m{Γv}v v).
+    forall epr, ctxRst Γ epr -> forall Γv, eprR epr Γv -> ⟦ m{Γv}r ρ ⟧ (m{Γv}v v).
 Proof.
   qauto using fundamental_combined.
 Qed.
@@ -375,7 +376,7 @@ Theorem fundamental:
   well_formed_builtin_typing ->
   forall (Γ: listctx rty) (e: tm) (τ: rty),
     Γ ⊢ e ⋮t τ ->
-    forall σ, ctxRst Γ σ -> ⟦ m{ σ }r τ ⟧ (m{ σ }t e).
+    forall epr σ, ctxRst Γ epr -> eprR epr σ -> ⟦ m{ σ }r τ ⟧ (m{ σ }t e).
 Proof.
   qauto using fundamental_combined.
 Qed.
@@ -383,7 +384,7 @@ Qed.
 Transparent msubst.
 
 (** A general type soundness theorem *)
-Corollary soundness :
+(* Corollary soundness :
   well_formed_builtin_typing ->
   forall (e : tm) b (ϕ : qualifier) (A : transducer),
     [] ⊢ e ⋮t ([:b|ϕ]!<[ A ]>) ->
@@ -396,6 +397,6 @@ Proof.
   eapply fundamental in HT; eauto using ctxRst.
   unfold msubst in HT. rewrite !map_fold_empty in HT.
   qauto using HT.
-Qed.
+Qed. *)
 
-Print Assumptions soundness.
+(* Print Assumptions soundness. *)

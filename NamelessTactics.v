@@ -2,9 +2,9 @@ From stdpp Require Import mapset.
 From CT Require Import Atom.
 From CT Require Import Tactics.
 From CT Require Import CoreLang.
-From Coq Require Import Logic.ClassicalFacts.
-From Coq Require Import Classical.
-From Coq Require Import Arith.Compare_dec.
+From Stdlib Require Import Logic.ClassicalFacts.
+From Stdlib Require Import Classical.
+From Stdlib Require Import Arith.Compare_dec.
 
 (** * This file defines auxiliary tactics for handling locally nameless
     representations. *)
@@ -340,8 +340,8 @@ Proof.
   - intro Hf. mydestr. eapply H; eauto.
 Qed.
 
-From Coq Require Import Logic.FunctionalExtensionality.
-From Coq Require Import Logic.PropExtensionality.
+From Stdlib Require Import Logic.FunctionalExtensionality.
+From Stdlib Require Import Logic.PropExtensionality.
 
 (** Prop Extensionality *)
 Lemma prop_ex3 {A B C: Type}: forall (P Q: A -> B -> C -> Prop), (forall a b c, P a b c <-> Q a b c) -> P = Q.

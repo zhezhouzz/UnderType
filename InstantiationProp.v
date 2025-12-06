@@ -730,9 +730,9 @@ Proof.
   rewrite dom_insert_L. my_set_solver.
 Qed.
 
-From Coq Require Import Logic.ClassicalFacts.
-From Coq Require Import Classical.
-From Coq Require Import Arith.Compare_dec.
+From Stdlib Require Import Logic.ClassicalFacts.
+From Stdlib Require Import Classical.
+From Stdlib Require Import Arith.Compare_dec.
 
 Lemma msubst_fvar_inv (Γv : env) v (x : atom) :
   closed_env Γv ->

@@ -1,5 +1,5 @@
 From stdpp Require Import stringmap mapset.
-From Coq Require Import Strings.String.
+From Stdlib Require Import Strings.String.
 
 (** This file defines atom, i.e., variable names, and its related concepts. *)
 

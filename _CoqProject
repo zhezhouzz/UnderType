@@ -1,4 +1,5 @@
--Q . CT
+-R . CT
+# -arg "-w all"
 Atom.v
 Tactics.v
 CoreLang.v

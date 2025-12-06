@@ -1,7 +1,7 @@
 From stdpp Require Import mapset.
 From CT Require Import Atom.
 From CT Require Import NamelessTactics.
-From Coq Require Import Lists.List.
+From Stdlib Require Import Lists.List.
 Import Atom.
 Import Tactics.
 Import NamelessTactics.

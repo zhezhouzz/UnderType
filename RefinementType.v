@@ -1,4 +1,4 @@
-Require Import Coq.Program.Wf.
+Require Import Stdlib.Program.Wf.
 From stdpp Require Import mapset.
 From stdpp Require Import natmap.
 From CT Require Import CoreLangProp.
