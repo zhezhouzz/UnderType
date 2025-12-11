@@ -1,21 +1,27 @@
 -R . CT
 # -arg "-w all"
-Atom.v
+BaseDef.v
 Tactics.v
-CoreLang.v
-NamelessTactics.v
-CoreLangProp.v
-OperationalSemantics.v
-BasicTyping.v
-BasicTypingProp.v
-Qualifier.v
 ListCtx.v
-RefinementType.v
-RefinementTypeProp.v
-Instantiation.v
-Denotation.v
-InstantiationProp.v
-DenotationProp.v
-Typing.v
-TypingProp.v
-Fundamental.v
+Syntax/Primitives.v
+Syntax/Lang.v
+Syntax/Qualifier.v
+Syntax/RefinementType.v
+BasicTyping.v
+# CoreLang.v
+# NamelessTactics.v
+# CoreLangProp.v
+# OperationalSemantics.v
+# BasicTyping.v
+# BasicTypingProp.v
+# Qualifier.v
+# ListCtx.v
+# RefinementType.v
+# RefinementTypeProp.v
+# Instantiation.v
+# Denotation.v
+# InstantiationProp.v
+# DenotationProp.v
+# Typing.v
+# TypingProp.v
+# Fundamental.v

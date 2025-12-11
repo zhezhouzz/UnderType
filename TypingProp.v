@@ -131,7 +131,7 @@ Qed.
 
 Ltac is_coverage_rty_tac :=
   repeat match goal with
-    | [H: _ |- is_coverage_rty (_ ^r^ _) ] => rewrite is_coverage_rty_open; eauto
+    | [H: _ |- is_coverage_rty (_ ^r^ _) ] => rewrite is_coverage_open_rty; eauto
     | [H: _ |- is_coverage_rty ((m{ _ }r) _) ] => rewrite is_coverage_rty_msubst; eauto
     | [H: _ |- is_coverage_rty (({ _ := _ }r) _) ] => rewrite is_coverage_rty_subst; eauto
     end.
@@ -181,7 +181,7 @@ Ltac simp_for_basic_typing :=
 (*       (apply rtyR_typed_closed in H2; rewrite closed_rty_arr in H2; simpl in *; intuition). *)
 (*   rewrite ex_phi_to_td_open by (simpl in Hfine; intuition). *)
 (*   rewrite ex_phi_to_td_open in H by (simpl in Hfine; intuition). *)
-(*   setoid_rewrite flip_rty_open in H3. *)
+(*   setoid_rewrite flip_open_rty in H3. *)
 (*   apply denotation_application_tlete; eauto. *)
 (*   - sinvert H0. simp_for_basic_typing. *)
 (*     assert (∅ ⊢t mk_app v1 v2 ⋮t ⌊ τ2 ⌋). *)
@@ -246,7 +246,7 @@ Admitted.
 (*   } *)
 (*   rewrite ex_phi_to_td_open by (simpl in *; intuition). *)
 (*   rewrite ex_phi_to_td_open in H by (simpl in *; intuition). *)
-(*   setoid_rewrite flip_rty_open in H3. *)
+(*   setoid_rewrite flip_open_rty in H3. *)
 (*   apply denotation_application_tlete; eauto. *)
 (*   - simpl in H2. simp_hyp H2. ospecialize (H9 v2 _); *)
 (*       repeat rewrite_measure_irrelevant; eauto. *)
@@ -278,7 +278,7 @@ Admitted.
 (*     rewrite reduction_tletapp_lam. *)
 (*     intuition. basic_typing_regular_simp. basic_typing_regular_simp. *)
 (*     rewrite reduction_nest_tlete; eauto. *)
-(*   - rewrite is_coverage_rty_open; eauto. *)
+(*   - rewrite is_coverage_open_rty; eauto. *)
 (* Qed. *)
 
 (* Lemma denotation_application_fixed (Tx : base_ty) T ϕ τ e : *)
@@ -342,5 +342,5 @@ Admitted.
 (*     apply reduction_tletapp_fix. split; eauto. *)
 (*     apply reduction_mk_app in H0; eauto. *)
 (*     eauto using basic_typing_regular_value. *)
-(*   - rewrite is_coverage_rty_open; eauto. *)
+(*   - rewrite is_coverage_open_rty; eauto. *)
 (* Qed. *)

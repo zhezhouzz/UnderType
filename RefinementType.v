@@ -106,15 +106,15 @@ Fixpoint rty_fv ρ : aset :=
   Instance rty_stale : @Stale aset rty := rty_fv.
 Arguments rty_stale /.
 
-Fixpoint rty_open (k: nat) (s: value) (ρ: rty) : rty :=
+Fixpoint open_rty (k: nat) (s: value) (ρ: rty) : rty :=
   match ρ with
   | {: b | ϕ } => {: b | qualifier_open (S k) s ϕ }
   | [: b | ϕ ] => [: b | qualifier_open (S k) s ϕ ]
-  | ρ ⇨ τ => (rty_open k s ρ) ⇨ (rty_open (S k) s τ)
+  | ρ ⇨ τ => (open_rty k s ρ) ⇨ (open_rty (S k) s τ)
   end.
 
-Notation "'{' k '~r>' s '}' e" := (rty_open k s e) (at level 20, k constr).
-Notation "e '^r^' s" := (rty_open 0 s e) (at level 20).
+Notation "'{' k '~r>' s '}' e" := (open_rty k s e) (at level 20, k constr).
+Notation "e '^r^' s" := (open_rty 0 s e) (at level 20).
 
 Fixpoint rty_subst (k: atom) (s: value) (ρ: rty) : rty :=
   match ρ with
@@ -171,7 +171,7 @@ Proof.
   induction 1; eauto.
 Qed.
 
-Lemma is_over_base_rty_open: forall τ k (v_x: value), is_over_base_rty ({ k ~r> v_x} τ) <-> is_over_base_rty τ.
+Lemma is_over_base_open_rty: forall τ k (v_x: value), is_over_base_rty ({ k ~r> v_x} τ) <-> is_over_base_rty τ.
 Proof.
   split; induction τ; simpl; intros; inversion H; subst; eauto.
 Qed.
@@ -181,7 +181,7 @@ Proof.
   split; induction τ; simpl; intros; inversion H; subst; eauto.
 Qed.
 
-Lemma is_under_base_rty_open: forall τ k (v_x: value), is_under_base_rty ({ k ~r> v_x} τ) <-> is_under_base_rty τ.
+Lemma is_under_base_open_rty: forall τ k (v_x: value), is_under_base_rty ({ k ~r> v_x} τ) <-> is_under_base_rty τ.
 Proof.
   split; induction τ; simpl; intros; inversion H; subst; eauto.
 Qed.
@@ -215,7 +215,7 @@ Proof.
   induction ρ; simpl; eauto.
 Qed.
 
-Lemma is_coverage_rty_open_aux n: forall τ, rty_measure τ <= n -> forall k (v_x: value), is_coverage_rty ({ k ~r> v_x} τ) <-> is_coverage_rty τ.
+Lemma is_coverage_open_rty_aux n: forall τ, rty_measure τ <= n -> forall k (v_x: value), is_coverage_rty ({ k ~r> v_x} τ) <-> is_coverage_rty τ.
 Proof.
   induction n; split; intros HH.
   - destruct τ; sinvert H.
@@ -231,8 +231,8 @@ Proof.
       * rewrite <- IHn in H2; eauto; simpl in *; lia.
 Qed.
 
-Lemma is_coverage_rty_open: forall τ, forall k (v_x: value), is_coverage_rty ({ k ~r> v_x} τ) <-> is_coverage_rty τ.
-Proof. eauto using is_coverage_rty_open_aux. Qed.
+Lemma is_coverage_open_rty: forall τ, forall k (v_x: value), is_coverage_rty ({ k ~r> v_x} τ) <-> is_coverage_rty τ.
+Proof. eauto using is_coverage_open_rty_aux. Qed.
 
 Lemma is_coverage_rty_subst_aux n: forall τ, rty_measure τ <= n -> forall x (v_x: value), is_coverage_rty ({ x := v_x}r τ) <-> is_coverage_rty τ.
 Proof.
@@ -253,7 +253,7 @@ Qed.
 Lemma is_coverage_rty_subst: forall τ x (v_x: value), is_coverage_rty ({ x := v_x}r τ) <-> is_coverage_rty τ.
 Proof. eauto using is_coverage_rty_subst_aux. Qed.
 
-Lemma rty_open_arr_rev: forall ρ τ k v, (({k ~r> v} ρ) ⇨ ({S k ~r> v} τ)) = {k ~r> v} (ρ ⇨ τ).
+Lemma open_rty_arr_rev: forall ρ τ k v, (({k ~r> v} ρ) ⇨ ({S k ~r> v} τ)) = {k ~r> v} (ρ ⇨ τ).
 Proof. eauto. Qed.
 
 Lemma rty_subst_arr_rev: forall ρ τ x v, (({x := v}r ρ) ⇨ ({x := v}r τ)) = {x := v}r (ρ ⇨ τ).
@@ -262,28 +262,28 @@ Proof. eauto. Qed.
 Ltac fine_rty_aux_simp_aux :=
   match goal with
   | [H: context [ (({?k ~r> ?v} _) ⇨ ({S ?k ~r> ?v} _)) ] |- _ ] =>
-      setoid_rewrite rty_open_arr_rev in H
+      setoid_rewrite open_rty_arr_rev in H
   | [H: context [ (({?x := ?v}r _) ⇨ ({?x := ?v}r _)) ] |- _ ] =>
       setoid_rewrite rty_subst_arr_rev in H
   | [H: _ |- context [ (({?k ~r> ?v} _) ⇨ ({S ?k ~r> ?v} _)) ]] =>
-      setoid_rewrite rty_open_arr_rev
+      setoid_rewrite open_rty_arr_rev
   | [H: _ |- context [ (({?x := ?v}r _) ⇨ ({?x := ?v}r _)) ] ] =>
       setoid_rewrite rty_subst_arr_rev
-  | [H: context [ is_over_base_rty ({_ ~r> _} ?τ) ] |- _ ] => setoid_rewrite is_over_base_rty_open in H
+  | [H: context [ is_over_base_rty ({_ ~r> _} ?τ) ] |- _ ] => setoid_rewrite is_over_base_open_rty in H
   | [H: context [ is_over_base_rty ({_ := _}r ?τ) ] |- _ ] => setoid_rewrite is_over_base_rty_subst in H
-  | [H: _ |- context [ is_over_base_rty ({_ ~r> _} ?τ) ] ] => setoid_rewrite is_over_base_rty_open
+  | [H: _ |- context [ is_over_base_rty ({_ ~r> _} ?τ) ] ] => setoid_rewrite is_over_base_open_rty
   | [H: _ |- context [ is_over_base_rty ({_ := _}r ?τ) ] ] => setoid_rewrite is_over_base_rty_subst
-  | [H: context [ is_under_base_rty ({_ ~r> _} ?τ) ] |- _ ] => setoid_rewrite is_under_base_rty_open in H
+  | [H: context [ is_under_base_rty ({_ ~r> _} ?τ) ] |- _ ] => setoid_rewrite is_under_base_open_rty in H
   | [H: context [ is_under_base_rty ({_ := _}r ?τ) ] |- _ ] => setoid_rewrite is_under_base_rty_subst in H
-  | [H: _ |- context [ is_under_base_rty ({_ ~r> _} ?τ) ] ] => setoid_rewrite is_under_base_rty_open
+  | [H: _ |- context [ is_under_base_rty ({_ ~r> _} ?τ) ] ] => setoid_rewrite is_under_base_open_rty
   | [H: _ |- context [ is_under_base_rty ({_ := _}r ?τ) ] ] => setoid_rewrite is_under_base_rty_subst
-  | [H: context [ is_coverage_rty ({_ ~r> _} ?τ) ] |- _ ] => setoid_rewrite is_coverage_rty_open in H
+  | [H: context [ is_coverage_rty ({_ ~r> _} ?τ) ] |- _ ] => setoid_rewrite is_coverage_open_rty in H
   | [H: context [ is_coverage_rty ({_ := _}r ?τ) ] |- _ ] => setoid_rewrite is_coverage_rty_subst in H
-  | [H: _ |- context [ is_coverage_rty ({_ ~r> _} ?τ) ] ] => setoid_rewrite is_coverage_rty_open
+  | [H: _ |- context [ is_coverage_rty ({_ ~r> _} ?τ) ] ] => setoid_rewrite is_coverage_open_rty
   | [H: _ |- context [ is_coverage_rty ({_ := _}r ?τ) ] ] => setoid_rewrite is_coverage_rty_subst
   end.
 
-Lemma fine_rty_open τ: forall k (v_x: value), fine_rty ({ k ~r> v_x} τ) <-> fine_rty τ.
+Lemma fine_open_rty τ: forall k (v_x: value), fine_rty ({ k ~r> v_x} τ) <-> fine_rty τ.
 Proof.
   split; intros; destruct τ; simpl in *; repeat fine_rty_aux_simp_aux; eauto.
 Qed.
@@ -296,16 +296,16 @@ Qed.
 Ltac fine_rty_simp_aux :=
   match goal with
   | [H: context [ (({?k ~r> ?v} _) ⇨ ({S ?k ~r> ?v} _)) ] |- _ ] =>
-      setoid_rewrite rty_open_arr_rev in H
+      setoid_rewrite open_rty_arr_rev in H
   | [H: context [ (({?x := ?v}r _) ⇨ ({?x := ?v}r _)) ] |- _ ] =>
       setoid_rewrite rty_subst_arr_rev in H
   | [H: _ |- context [ (({?k ~r> ?v} _) ⇨ ({S ?k ~r> ?v} _)) ]] =>
-      setoid_rewrite rty_open_arr_rev
+      setoid_rewrite open_rty_arr_rev
   | [H: _ |- context [ (({?x := ?v}r _) ⇨ ({?x := ?v}r _)) ] ] =>
       setoid_rewrite rty_subst_arr_rev
-  | [H: context [ fine_rty ({_ ~r> _} ?τ) ] |- _ ] => setoid_rewrite fine_rty_open in H
+  | [H: context [ fine_rty ({_ ~r> _} ?τ) ] |- _ ] => setoid_rewrite fine_open_rty in H
   | [H: context [ fine_rty ({_ := _}r ?τ) ] |- _ ] => setoid_rewrite fine_rty_subst in H
-  | [H: _ |- context [ fine_rty ({_ ~r> _} ?τ) ] ] => setoid_rewrite fine_rty_open
+  | [H: _ |- context [ fine_rty ({_ ~r> _} ?τ) ] ] => setoid_rewrite fine_open_rty
   | [H: _ |- context [ fine_rty ({_ := _}r ?τ) ] ] => setoid_rewrite fine_rty_subst
   | _ => fine_rty_aux_simp_aux
   end.

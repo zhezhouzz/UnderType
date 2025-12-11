@@ -1,8 +1,8 @@
-From CT Require Import Atom.
+From CT Require Import BaseDef.
 From stdpp Require Export prelude fin_maps fin_map_dom.
 From Hammer Require Export Tactics.
 
-Import Atom.
+Import BaseDef.
 
 (** * Some tactics in the file is inspired by OADT: https://github.com/ccyip/oadt *)
 (** * Fold over hypotheses *)
@@ -367,3 +367,172 @@ Ltac equiv_naive_solver :=
 
 #[export]
 Hint Extern 1 (_ ≡ _) => equiv_naive_solver : equiv_naive_solver.
+
+Ltac destruct_hyp_conj :=
+  match goal with
+  | [H: ?P /\ ?Q |- _ ] =>
+      destruct H; repeat match goal with
+                    | [ H' : P /\ Q |- _ ] => clear H'
+                    end
+  | [H: atom * _ |- _ ] => destruct H
+  | [ H: ex _ |- _ ] => destruct H
+  | [H: context [decide (?a = ?b) ] |- _ ] => destruct (decide (a = b)); subst
+  | [|- context [decide (?a = ?b) ] ] => destruct (decide (a = b)); subst
+  end.
+
+Ltac destruct_hyp_disj :=
+  repeat (simpl in *; match goal with
+    | [H: _ \/ _ |- _ ] => destruct H
+    end).
+
+Ltac mydestr := repeat destruct_hyp_conj.
+
+Ltac invclear H := inversion H; subst; clear H.
+
+Lemma setunion_cons_cons: forall (x: atom) (s1 s2: aset), {[x]} ∪ s1 ∪ ({[x]} ∪ s2) = ({[x]} ∪ s1 ∪ s2).
+Proof. fast_set_solver. Qed.
+
+Lemma setunion_empty_left: forall (s: aset), ∅ ∪ s = s.
+Proof. fast_set_solver. Qed.
+
+Lemma subseteq_substract_both: forall (x: atom) (s1 s2: aset), x ∉ s1 -> x ∉ s2 -> {[x]} ∪ s1 ⊆ {[x]} ∪ s2 -> s1 ⊆ s2.
+Proof.
+  intros.
+  apply (difference_mono _ _ {[x]} {[x]}) in H1; auto.
+  repeat rewrite difference_union_distr_l in H1.
+  repeat rewrite difference_diag in H1.
+  repeat rewrite setunion_empty_left in H1.
+  rewrite difference_disjoint in H1.
+  rewrite difference_disjoint in H1; fast_set_solver.
+  fast_set_solver.
+Qed.
+
+Lemma setunion_cons_right: forall x (s2: aset), (s2 ∪ ({[x]} ∪ ∅)) = ({[x]} ∪ s2).
+Proof. fast_set_solver. Qed.
+
+Ltac mmy_set_simpl1 :=
+  (repeat match goal with
+     | [H: context [({[?x]} ∪ ?s ∪ ({[?x]} ∪ _))] |- _] => rewrite (setunion_cons_cons x s _) in H
+     | [H: context [(?s2 ∪ ({[?x]} ∪ ∅))] |- _ ] => setoid_rewrite (setunion_cons_right x s2) in H
+     end).
+
+Lemma subseteq_substract_both': forall (x: atom) (s1 s2: aset), x ∉ s1 -> x ∉ s2 -> {[x]} ∪ s1 ⊆ s2 ∪ ({[x]} ∪ ∅) -> s1 ⊆ s2.
+Proof.
+  intros. mmy_set_simpl1.
+  apply subseteq_substract_both in H1; auto.
+Qed.
+
+Ltac mmy_set_solver1 :=
+  mmy_set_simpl1;
+  match goal with
+  | [H: ?s1 ∪ ?s2 ∪ ?s3 ⊆ ?s4 ∪ ?s5 ∪ ?s6 |- ?s1 ∪ (?s2 ∪ ?s3) ⊆ ?s4 ∪ (?s5 ∪ ?s6)] =>
+      assert (forall (ss1 ss2 ss3: aset), ss1 ∪ (ss2 ∪ ss3) = (ss1 ∪ ss2 ∪ ss3)) as Htmp by fast_set_solver;
+      do 2 rewrite Htmp; try clear Htmp; exact H
+  | [H: {[?x]} ∪ ?s1 ⊆ {[?x]} ∪ ?s2 |- ?s1 ⊆ ?s2] => apply (subseteq_substract_both x); auto; fast_set_solver
+  end.
+
+Lemma setunion_mono_cons: forall (x: atom) (s1 s2 s3 s4: aset),
+    {[x]} ∪ s1 ⊆ {[x]} ∪ s2 -> {[x]} ∪ s3 ⊆ {[x]} ∪ s4 -> {[x]} ∪ (s1 ∪ s3) ⊆ {[x]} ∪ (s2 ∪ s4).
+Proof.
+  intros.
+  apply (union_mono ({[x]} ∪ s1) ({[x]} ∪ s2) ({[x]} ∪ s3) ({[x]} ∪ s4)) in H; auto.
+   mmy_set_solver1.
+Qed.
+
+Ltac mmy_set_solver2 :=
+  mmy_set_simpl1;
+  match goal with
+  | [ |- {[?x]} ∪ (?s1 ∪ ?s3) ⊆ {[?x]} ∪ (?s2 ∪ ?s4)] => apply setunion_mono_cons; auto
+  | [H: ?s1 ∪ ?s2 ∪ ?s3 ⊆ ?s4 ∪ ?s5 ∪ ?s6 |- ?s1 ∪ (?s2 ∪ ?s3) ⊆ ?s4 ∪ (?s5 ∪ ?s6)] =>
+      assert (forall (ss1 ss2 ss3: aset), ss1 ∪ (ss2 ∪ ss3) = (ss1 ∪ ss2 ∪ ss3)) as Htmp by fast_set_solver;
+      do 2 rewrite Htmp; try clear Htmp; exact H
+  end.
+
+Ltac my_set_solver :=
+  match goal with
+  | [H: context [∅ ∪ ?d] |- _ ] =>
+      assert (∅ ∪ d = d) as Htmp by fast_set_solver;
+      rewrite Htmp in H; try clear Htmp; auto; try fast_set_solver
+  | [ |- context [∅ ∪ ?d] ] =>
+      assert (∅ ∪ d = d) as Htmp by fast_set_solver;
+      rewrite Htmp; try clear Htmp; auto; try fast_set_solver
+  end ||
+    mmy_set_solver2 || fast_set_solver!! || set_solver.
+
+(* Locally Nameless Tactics *)
+
+Ltac collect_one_stale e acc :=
+  match goal with
+  | _ =>
+      lazymatch acc with
+      | tt => constr:(stale e)
+      | _ => constr:(acc ∪ stale e)
+      end
+  | _ => acc
+  end.
+
+(** Return all stales in the context. *)
+Ltac collect_stales S :=
+  let stales := fold_hyps S collect_one_stale in
+  lazymatch stales with
+  | tt => fail "no stale available"
+  | _ => stales
+  end.
+
+Ltac auto_exists_L :=
+  let acc := collect_stales tt in econstructor; eauto; try instantiate (1 := acc).
+
+Ltac auto_pose_fv a :=
+  let acc := collect_stales tt in
+  pose (fv_of_set acc) as a;
+  assert (a ∉ acc) by (apply fv_of_set_fresh; auto).
+
+(* list of atoms *)
+
+Ltac simpl_union H :=
+  let rec go H :=
+      lazymatch type of H with
+      | _ ∉ _ ∪ _ =>
+        rewrite not_elem_of_union in H;
+          let H1 := fresh "Hfresh" in
+          let H2 := fresh "Hfresh" in
+          destruct H as [H1 H2]; go H1; go H2
+      | _ => idtac
+  end in go H.
+
+Ltac instantiate_atom_listctx :=
+  let acc := collect_stales tt in
+  instantiate (1 := acc); intros;
+  repeat (match goal with
+          | [H: forall (x: atom), x ∉ ?L -> _, H': ?a ∉ _ ∪ (stale _) |- _ ] =>
+              assert (a ∉ L) as Htmp by fast_set_solver;
+              specialize (H a Htmp); clear Htmp; repeat destruct_hyp_conj; auto
+          end; simpl).
+
+Lemma empty_eq_app_exfalso {A: Type}: forall Γ1 (x: atom) (t: A) Γ2, ~ ([] = Γ1 ++ [(x, t)] ++ Γ2).
+  Proof.
+    intros. intro H.
+    symmetry in H. apply app_eq_nil in H. mydestr.
+    apply app_eq_nil in H0. mydestr. inversion H0.
+Qed.
+
+Ltac auto_exfalso :=
+  match goal with
+  | [H: [] = _ ++ [(_, _)] ++ _ |- _] => apply empty_eq_app_exfalso in H; inversion H
+  | [H: _ ++ [(_, _)] ++ _ = [] |- _] => symmetry in H; apply empty_eq_app_exfalso in H; inversion H
+  | [H: ?a <> ?a |- _ ] => exfalso; auto
+  | [H: False |- _] => inversion H
+  | [H: Some _ = None |- _ ] => inversion H
+  | [H: None = Some _ |- _ ] => inversion H
+  | [H1: [] = _ ++ _ |- _ ] => symmetry in H1; apply app_eq_nil in H1; destruct H1 as (_ & H1); inversion H1
+  end || (exfalso; fast_set_solver !!).
+
+Ltac specialize_with x :=
+  match goal with
+  | [H: forall x, (x ∈ ?L → False) -> _ |- _] =>
+      let Htmp := fresh "Htmp" in
+      assert (x ∉ L) as Htmp by fast_set_solver; specialize (H x Htmp); try clear Htmp
+  | [H: forall x, x ∉ ?L -> _ |- _] =>
+      let Htmp := fresh "Htmp" in
+      assert (x ∉ L) as Htmp by fast_set_solver; specialize (H x Htmp); try clear Htmp
+  end.

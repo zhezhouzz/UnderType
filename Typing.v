@@ -1,4 +1,4 @@
-From stdpp Require Import mapset.
+rom stdpp Require Import mapset.
 From CT Require Import CoreLangProp.
 From CT Require Import OperationalSemantics.
 From CT Require Import BasicTypingProp.

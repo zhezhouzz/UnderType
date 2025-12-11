@@ -10,6 +10,70 @@ Import NamelessTactics.
 Import BasicTyping.
 Import OperationalSemantics.
 
+(** * Naming related properties of the basic type system *)
+
+Lemma basic_typing_contains_fv_tm: forall Γ e T, Γ ⊢t e ⋮t T -> fv_tm e ⊆ dom Γ
+with basic_typing_contains_fv_value: forall Γ e T, Γ ⊢t e ⋮v T -> fv_value e ⊆ dom Γ.
+Proof.
+  all:
+  destruct 1; simpl; eauto;
+  try select (forall x, _ ∉ _ -> _) (fun H => auto_pose_fv x; repeat specialize_with x);
+  repeat select (_ ⊢t _ ⋮v _) (fun H => apply basic_typing_contains_fv_value in H);
+  repeat select (_ ⊢t _ ⋮t _) (fun H => apply basic_typing_contains_fv_tm in H);
+  simpl in *;
+  repeat
+    match goal with
+    | H : fv_tm ({_ ~t> _} _) ⊆ _ |- _ =>
+        setoid_rewrite <- open_fv_tm' in H
+    | H : _ ⊆ dom (<[_:=_]>_) |- _ =>
+        setoid_rewrite dom_insert in H
+    | H : _ !! _ = _ |- _ =>
+        apply elem_of_dom_2 in H
+    end;
+  my_set_solver.
+Qed.
+
+Lemma basic_typing_closed_tm: forall e T, ∅ ⊢t e ⋮t T -> closed_tm e.
+Proof.
+  intros.
+  apply basic_typing_contains_fv_tm in H. my_set_solver.
+Qed.
+
+Lemma basic_typing_closed_value: forall v T, ∅ ⊢t v ⋮v T -> closed_value v.
+Proof.
+  intros.
+  apply basic_typing_contains_fv_value in H. my_set_solver.
+Qed.
+
+Lemma basic_typing_regular_value: forall Γ v t, Γ ⊢t v ⋮v t -> lc v
+with basic_typing_regular_tm: forall Γ e t, Γ ⊢t e ⋮t t -> lc e.
+Proof.
+  all: destruct 1; simpl;
+    try econstructor; try instantiate_atom_listctx; eauto.
+Qed.
+
+Ltac lc_basic_typing_simp_aux :=
+  match goal with
+  | [H: _ ⊢t ?e ⋮t _ |- lc ?e] => apply basic_typing_regular_tm in H
+  | [H: _ ⊢t ?v ⋮v _ |- lc (treturn ?v)] => apply basic_typing_regular_value in H
+  | [H: _ ⊢t _ ⋮v _ |- lc _] => apply basic_typing_regular_value in H; simp_hyps
+  | [H: _ ⊢t _ ⋮t _ |- lc _] => apply basic_typing_regular_tm in H; simp_hyps
+  | [H: _ ⊢t _ ⋮v _ |- body _] => apply basic_typing_regular_value in H; simp_hyps
+  | [H: _ ⊢t _ ⋮t _ |- body _] => apply basic_typing_regular_tm in H; simp_hyps
+  | [H: _ ⊢t _ ⋮v _ |- context [fv_value _]] =>
+      apply basic_typing_closed_value in H; simp_hyps
+  | [H: _ ⊢t _ ⋮t _ |- context [fv_value _]] =>
+      apply basic_typing_closed_tm in H; simp_hyps
+  | [H: _ ⊢t _ ⋮v _ |- context [fv_tm _]] =>
+      apply basic_typing_closed_value in H; simp_hyps
+  | [H: _ ⊢t _ ⋮t _ |- context [fv_tm _]] =>
+      apply basic_typing_closed_tm in H; simp_hyps
+  end; eauto.
+
+Ltac basic_typing_regular_simp :=
+  repeat lc_basic_typing_simp_aux; eauto.
+
+
 (** This file proves properties of the basic type system. *)
 
 (** * Canonical forms *)

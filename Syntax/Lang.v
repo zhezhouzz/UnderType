@@ -1,51 +1,9 @@
-From CT Require Import Atom.
+From CT Require Import BaseDef.
+From CT Require Import Syntax.Primitives.
 From stdpp Require Import stringmap mapset.
 
-(** * This file defines the core language λᴱ. *)
+(** * This file defines the core language. *)
 
-(** * constants (c in Fig. 2) *)
-Inductive constant : Type :=
-| cbool: bool -> constant
-| cnat : nat -> constant.
-
-Global Hint Constructors constant: core.
-
-(** * basic types *)
-(** base types (b in Fig. 4) *)
-Inductive base_ty : Type :=
-| TNat   : base_ty
-| TBool  : base_ty.
-
-Global Hint Constructors base_ty: core.
-
-(** basic types (s in Fig. 4) *)
-Inductive ty : Type :=
-| TBase : base_ty -> ty
-| TArrow : ty -> ty -> ty.
-
-Global Hint Constructors ty: core.
-
-Coercion TBase : base_ty >-> ty.
-Coercion cbool : bool >-> constant.
-Coercion cnat : nat >-> constant.
-
-(* notation for function type: \rightbkarrow. *)
-Notation " t1 '⤍' t2" := (TArrow t1 t2) (at level 18, right associativity).
-
-(** * effectful operators (op in Fig. 4) *)
-(** pure operators (e.g., [op_plus_one]) are treated as effectful operators,
-  whose return value is independent of the context trace, and will not interfere
-  the result of other operators. *)
-Inductive effop : Type :=
-| op_plus_one
-| op_eq_zero
-| op_rannat.
-
-Global Hint Constructors effop: core.
-
-(** * λᴱ term syntax (Fig. 2) *)
-
-(** values (v in Fig. 2) *)
 Inductive value : Type :=
 | vconst (c: constant)
 | vfvar (atom: atom)
@@ -93,11 +51,29 @@ with open_tm (k : nat) (s : value) (e : tm): tm :=
        | tmatchb v e1 e2 => tmatchb (open_value k s v) (open_tm k s e1) (open_tm k s e2)
        end.
 
-Notation "'{' k '~v>' s '}' e" := (open_value k s e) (at level 20, k constr).
-Notation "'{' k '~t>' s '}' e" := (open_tm k s e) (at level 20, k constr).
+(* Instances for the generic [Open] class.  We want to be able to open both
+   with a value (the locally nameless payload) and directly with an atom,
+   which gets coerced to a value via [vfvar]. *)
 
-Notation "e '^v^' s" := (open_value 0 s e) (at level 20).
-Notation "e '^t^' s" := (open_tm 0 s e) (at level 20).
+(* Opening values/terms with a value *)
+#[global]
+Instance open_value_with_value : Open value value := open_value.
+Arguments open_value_with_value /.
+
+#[global]
+Instance open_tm_with_value : Open value tm := open_tm.
+Arguments open_tm_with_value /.
+
+(* Opening values/terms with an atom binder (used in [lc] definitions) *)
+#[global]
+Instance open_value_with_atom : Open atom value :=
+  fun k (a : atom) (v : value) => open_value k (vfvar a) v.
+Arguments open_value_with_atom /.
+
+#[global]
+Instance open_tm_with_atom : Open atom tm :=
+  fun k (a : atom) (e : tm) => open_tm k (vfvar a) e.
+Arguments open_tm_with_atom /.
 
 (** close *)
 Fixpoint close_value (x : atom) (s : nat) (v : value): value :=
@@ -121,32 +97,43 @@ with close_tm (x : atom) (s : nat) (e : tm): tm :=
            tmatchb (close_value x s v) (close_tm x s e1) (close_tm x s e2)
        end.
 
-Notation "'{' s '<v~' x '}' e" := (close_value x s e) (at level 20, s constr).
-Notation "'{' s '<t~' x '}' e" := (close_tm x s e) (at level 20, s constr).
+#[global]
+Instance close_value_instance : Close value := close_value.
+Arguments close_value_instance /.
 
-Notation "x '\v\' e" := (close_value x 0 e) (at level 20).
-Notation "x '\t\' e" := (close_tm x 0 e) (at level 20).
+#[global]
+Instance close_tm_instance : Close tm := close_tm.
+Arguments close_tm_instance /.
 
 (** locally closed *)
-Inductive lc: tm -> Prop :=
-| lc_terr: forall (t: ty), lc (terr t)
-| lc_const: forall (c: constant), lc c
-| lc_vfvar: forall (a: atom), lc (vfvar a)
-| lc_vlam: forall T e (L: aset), (forall (x: atom), x ∉ L -> lc (e ^t^ x)) -> lc (vlam T e)
-| lc_vfix: forall Tf e (L: aset),
-    (forall (f:atom), f ∉ L -> lc ({0 ~t> f} e)) -> lc (vfix Tf e)
-| lc_tlete: forall (e1 e2: tm) (L: aset),
-    lc e1 -> (forall (x: atom), x ∉ L -> lc (e2 ^t^ x)) -> lc (tlete e1 e2)
-| lc_tletapp: forall (v1 v2: value) e (L: aset),
-    lc v1 -> lc v2 -> (forall (x: atom), x ∉ L -> lc (e ^t^ x)) -> lc (tletapp v1 v2 e)
-| lc_tleteffop: forall op (v1: value) e (L: aset),
-    lc v1 -> (forall (x: atom), x ∉ L -> lc (e ^t^ x)) -> lc (tleteffop op v1 e)
-| lc_tmatchb: forall (v: value) e1 e2, lc v -> lc e1 -> lc e2 -> lc (tmatchb v e1 e2).
+(* TODO: define lc mutually recursively *)
 
-Global Hint Constructors lc: core.
+Inductive lc_value: tm -> Prop :=
+  | lc_vconst: forall (c: constant), lc_value c
+  | lc_vfvar: forall (a: atom), lc_value (vfvar a)
+  | lc_vbvar: forall (n: nat), lc_value (vbvar n)
+  | lc_vlam: forall T e (L: aset), (forall (x: atom), x ∉ L -> lc_value (e ^^ x)) -> lc_value (vlam T e)
+  | lc_vfix: forall Tf e (L: aset),
+      (forall (f:atom), f ∉ L -> lc_value ({0 ~> f} e)) -> lc_value (vfix Tf e)
+with lc_tm: tm -> Prop :=
+  | lc_terr: forall (t: ty), lc_tm (terr t)
+  | lc_tlete: forall (e1 e2: tm) (L: aset),
+    lc_value e1 -> (forall (x: atom), x ∉ L -> lc_tm (e2 ^^ x)) -> lc_tm (tlete e1 e2)
+  | lc_tletapp: forall (v1 v2: value) e (L: aset),
+    lc_value v1 -> lc_value v2 -> (forall (x: atom), x ∉ L -> lc_tm (e ^^ x)) -> lc_tm (tletapp v1 v2 e)
+  | lc_tleteffop: forall op (v1: value) e (L: aset),
+    lc_value v1 -> (forall (x: atom), x ∉ L -> lc_tm (e ^^ x)) -> lc_tm (tleteffop op v1 e)
+  | lc_tmatchb: forall (v: value) e1 e2, lc_value v -> lc_tm e1 -> lc_tm e2 -> lc_tm (tmatchb v e1 e2).
 
-Definition varopen_value (s: atom) (e: value) := e ^v^ s.
-Definition varopen_tm (s: atom) (e: tm) := e ^t^ s.
+Global Hint Constructors lc_value lc_tm: core.
+
+#[global]
+Instance locally_closed_value_instance : Lc value := lc_value.
+Arguments locally_closed_value_instance /.
+
+#[global]
+Instance locally_closed_tm_instance : Lc tm := lc_tm.
+Arguments locally_closed_tm_instance /.
 
 (** free variables *)
 Fixpoint fv_value (v : value): aset :=
@@ -167,10 +154,18 @@ with fv_tm (e : tm): aset :=
        | tmatchb v e1 e2 => (fv_value v) ∪ (fv_tm e1) ∪ (fv_tm e2)
        end.
 
+#[global]
+Instance stale_value_instance : @Stale aset value := fv_value.
+Arguments stale_value_instance /.
+
+#[global]
+Instance stale_tm_instance : @Stale aset tm := fv_tm.
+Arguments stale_tm_instance /.
+
 Definition closed_value (v: value) := fv_value v ≡ ∅.
 Definition closed_tm (e: tm) := fv_tm e ≡ ∅.
 
-Definition body (e: tm) := exists (L: aset), forall (x: atom), x ∉ L -> lc (e ^t^ x).
+Definition body (e: tm) := exists (L: aset), forall (x: atom), x ∉ L -> lc (e ^^ x).
 
 (** substitution *)
 Fixpoint value_subst (x : atom) (s : value) (v : value): value :=
@@ -191,8 +186,41 @@ with tm_subst (x : atom) (s : value) (e : tm): tm :=
        | tmatchb v e1 e2 => tmatchb (value_subst x s v) (tm_subst x s e1) (tm_subst x s e2)
        end.
 
-Notation "'{' x ':=' s '}t' t" := (tm_subst x s t) (at level 20).
-Notation "'{' x ':=' s '}v' t" := (value_subst x s t) (at level 20).
+#[global]
+Instance subst_value_with_value : Subst value value := value_subst.
+Arguments subst_value_with_value /.
+
+#[global]
+Instance subst_tm_with_value : Subst value tm := tm_subst.
+Arguments open_tm_with_value /.
+
+#[global]
+Instance subst_value_with_atom : Subst atom value :=
+  fun x (a : atom) (v : value) => value_subst x (vfvar a) v.
+Arguments subst_value_with_atom /.
+
+#[global]
+Instance subst_tm_with_atom : Subst atom tm :=
+  fun k (a : atom) (e : tm) => tm_subst k (vfvar a) e.
+Arguments subst_tm_with_atom /.
+
 (* Syntax Suger *)
 Definition mk_app (e: tm) (v: tm) :=
   tlete e (tlete v (tletapp (vbvar 1) (vbvar 0) (vbvar 0))).
+
+
+(* Well-founded constraint of base type for fixed point. *)
+Definition constant_measure (c : constant) :=
+match c with
+| cnat n => n
+| cbool b => Nat.b2n b
+end.
+
+Definition constant_lt := ltof _ constant_measure.
+
+Notation " a '≺' b " := (constant_lt a b) (at level 20, a constr, b constr).
+
+Lemma constant_lt_well_founded : well_founded constant_lt.
+Proof.
+apply well_founded_ltof.
+Qed.
