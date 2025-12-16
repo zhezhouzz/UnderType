@@ -1,6 +1,6 @@
 From stdpp Require Import mapset.
 From CT Require Import BaseDef.
-From CT Require Import Tactics.
+From CT Require Import MyTactics.
 From Stdlib Require Import Lists.List.
 Import BaseDef.
 Import List.

@@ -246,24 +246,6 @@ Ltac var_dec_solver :=
   | _ => progress simpl
   end.
 
-Ltac auto_eq_post :=
-  repeat match goal with
-         | [ |- ?a ?e1 = ?a ?e2 ] =>
-             assert (e1 = e2) as HH; try (rewrite HH; auto)
-         | [|- ?a ?b ?e1 = ?a ?b ?e2 ] =>
-             assert (e1 = e2) as HH; try (rewrite HH; auto)
-         | [|- ?a ?b ?c ?e1 = ?a ?b ?c ?e2 ] =>
-             assert (e1 = e2) as HH; try (rewrite HH; auto)
-         | [ |- ?a ?b ?c1 = ?a ?b ?c2 ] =>
-             assert (c1 = c2); auto
-         | [ H: ?a _ = ?a _ |- _ ] =>
-             inversion H; subst; clear H; auto
-         | [ H: ?a _ _ = ?a _ _ |- _ ] =>
-             inversion H; subst; clear H; auto
-         | [ H: ?a _ _ _ = ?a _ _ _ |- _ ] =>
-             inversion H; subst; clear H; auto
-         end.
-
 Ltac equate x y :=
   idtac x;
   let dummy := constr:(eq_refl x : x = y) in idtac.

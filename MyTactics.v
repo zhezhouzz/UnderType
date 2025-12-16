@@ -536,3 +536,26 @@ Ltac specialize_with x :=
       let Htmp := fresh "Htmp" in
       assert (x ∉ L) as Htmp by fast_set_solver; specialize (H x Htmp); try clear Htmp
   end.
+
+Ltac pose_fresh_fv name :=
+  let accL := collect_stales tt in
+  pose (fv_of_set accL) as name;
+  pose (fv_of_set_fresh accL).
+
+Ltac f_equal_hyp :=
+  repeat match goal with
+         | [ |- ?a ?e1 = ?a ?e2 ] =>
+             assert (e1 = e2) as HH; try (rewrite HH; auto)
+         | [|- ?a ?b ?e1 = ?a ?b ?e2 ] =>
+             assert (e1 = e2) as HH; try (rewrite HH; auto)
+         | [|- ?a ?b ?c ?e1 = ?a ?b ?c ?e2 ] =>
+             assert (e1 = e2) as HH; try (rewrite HH; auto)
+         | [ |- ?a ?b ?c1 = ?a ?b ?c2 ] =>
+             assert (c1 = c2); auto
+         | [ H: ?a _ = ?a _ |- _ ] =>
+             inversion H; subst; clear H; auto
+         | [ H: ?a _ _ = ?a _ _ |- _ ] =>
+             inversion H; subst; clear H; auto
+         | [ H: ?a _ _ _ = ?a _ _ _ |- _ ] =>
+             inversion H; subst; clear H; auto
+         end.

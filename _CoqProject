@@ -1,12 +1,15 @@
 -R . CT
 # -arg "-w all"
 BaseDef.v
-Tactics.v
+MyTactics.v
 ListCtx.v
 Syntax/Primitives.v
 Syntax/Lang.v
 Syntax/Qualifier.v
 Syntax/RefinementType.v
+Syntax/Syntax.v
+LocallyNameless/LangLc.v
+LocallyNameless/QualifierLc.v
 BasicTyping.v
 # CoreLang.v
 # NamelessTactics.v

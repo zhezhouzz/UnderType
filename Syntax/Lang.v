@@ -24,9 +24,12 @@ return syntax, while in the paper values are implicitly expressions. *)
 Scheme value_mutual_rec := Induction for value Sort Type
     with tm_mutual_rec := Induction for tm Sort Type.
 
+Combined Scheme value_term_mutind from
+    value_mutual_rec, tm_mutual_rec.
+
 Coercion vconst : constant >-> value.
 Coercion vfvar : atom >-> value.
-Coercion treturn : value >-> tm.
+(* Coercion treturn : value >-> tm. *)
 
 (** * Locally nameless representation related definitions *)
 
@@ -108,22 +111,29 @@ Arguments close_tm_instance /.
 (** locally closed *)
 (* TODO: define lc mutually recursively *)
 
-Inductive lc_value: tm -> Prop :=
+Inductive lc_value: value -> Prop :=
   | lc_vconst: forall (c: constant), lc_value c
   | lc_vfvar: forall (a: atom), lc_value (vfvar a)
-  | lc_vbvar: forall (n: nat), lc_value (vbvar n)
-  | lc_vlam: forall T e (L: aset), (forall (x: atom), x ∉ L -> lc_value (e ^^ x)) -> lc_value (vlam T e)
+  | lc_vlam: forall T e (L: aset), (forall (x: atom), x ∉ L -> lc_tm (e ^^ (vfvar x))) -> lc_value (vlam T e)
   | lc_vfix: forall Tf e (L: aset),
-      (forall (f:atom), f ∉ L -> lc_value ({0 ~> f} e)) -> lc_value (vfix Tf e)
+          (forall (f:atom), f ∉ L -> lc_tm ({0 ~> (vfvar f)} e)) -> lc_value (vfix Tf e)
 with lc_tm: tm -> Prop :=
   | lc_terr: forall (t: ty), lc_tm (terr t)
+  | lc_treturn: forall (v: value), lc_value v -> lc_tm (treturn v)
   | lc_tlete: forall (e1 e2: tm) (L: aset),
-    lc_value e1 -> (forall (x: atom), x ∉ L -> lc_tm (e2 ^^ x)) -> lc_tm (tlete e1 e2)
+    lc_tm e1 -> (forall (x: atom), x ∉ L -> lc_tm (e2 ^^ (vfvar x))) -> lc_tm (tlete e1 e2)
   | lc_tletapp: forall (v1 v2: value) e (L: aset),
-    lc_value v1 -> lc_value v2 -> (forall (x: atom), x ∉ L -> lc_tm (e ^^ x)) -> lc_tm (tletapp v1 v2 e)
+    lc_value v1 -> lc_value v2 -> (forall (x: atom), x ∉ L -> lc_tm (e ^^ (vfvar x))) -> lc_tm (tletapp v1 v2 e)
   | lc_tleteffop: forall op (v1: value) e (L: aset),
-    lc_value v1 -> (forall (x: atom), x ∉ L -> lc_tm (e ^^ x)) -> lc_tm (tleteffop op v1 e)
-  | lc_tmatchb: forall (v: value) e1 e2, lc_value v -> lc_tm e1 -> lc_tm e2 -> lc_tm (tmatchb v e1 e2).
+    lc_value v1 -> (forall (x: atom), x ∉ L -> lc_tm (e ^^ (vfvar x))) -> lc_tm (tleteffop op v1 e)
+  | lc_tmatchb: forall (v: value) e1 e2, 
+    lc_value v -> lc_tm e1 -> lc_tm e2 -> lc_tm (tmatchb v e1 e2).
+
+Scheme lc_value_mutual_rec := Induction for lc_value Sort Prop
+    with lc_tm_mutual_rec := Induction for lc_tm Sort Prop.
+
+Combined Scheme lc_value_tm_mutind from
+    lc_value_mutual_rec, lc_tm_mutual_rec.
 
 Global Hint Constructors lc_value lc_tm: core.
 
@@ -134,6 +144,15 @@ Arguments locally_closed_value_instance /.
 #[global]
 Instance locally_closed_tm_instance : Lc tm := lc_tm.
 Arguments locally_closed_tm_instance /.
+
+Class Body A `{Open value A} `{Lc A} := body : A -> Prop.
+Class Body2 A `{Open value A} `{Lc A} := body2 : A -> Prop.
+
+#[global] Instance Body_default (A : Type) `{Open value A} `{Lc A} : Body A :=
+  fun e => exists (L : aset), forall (x : atom), x ∉ L -> lc ({0 ~> (vfvar x)} e).
+
+#[global] Instance Body2_default (A : Type) `{Open value A} `{Lc A} : Body2 A :=
+  fun e => exists (L : aset), forall (x : atom), x ∉ L -> forall (y : atom), y ∉ L -> lc ({0 ~> (vfvar y)} ({1 ~> (vfvar x)} e)).
 
 (** free variables *)
 Fixpoint fv_value (v : value): aset :=
@@ -162,51 +181,46 @@ Arguments stale_value_instance /.
 Instance stale_tm_instance : @Stale aset tm := fv_tm.
 Arguments stale_tm_instance /.
 
-Definition closed_value (v: value) := fv_value v ≡ ∅.
-Definition closed_tm (e: tm) := fv_tm e ≡ ∅.
-
-Definition body (e: tm) := exists (L: aset), forall (x: atom), x ∉ L -> lc (e ^^ x).
-
 (** substitution *)
-Fixpoint value_subst (x : atom) (s : value) (v : value): value :=
+Fixpoint subst_value (x : atom) (s : value) (v : value): value :=
   match v with
   | vconst _ => v
   | vfvar y => if decide (x = y) then s else v
   | vbvar _ => v
-  | vlam T e => vlam T (tm_subst x s e)
-  | vfix Tf e => vfix Tf (tm_subst x s e)
+  | vlam T e => vlam T (subst_tm x s e)
+  | vfix Tf e => vfix Tf (subst_tm x s e)
   end
-with tm_subst (x : atom) (s : value) (e : tm): tm :=
+with subst_tm (x : atom) (s : value) (e : tm): tm :=
        match e with
        | terr ty => terr ty
-       | treturn v => treturn (value_subst x s v)
-       | tlete e1 e2 => tlete (tm_subst x s e1) (tm_subst x s e2)
-       | tletapp v1 v2 e => tletapp (value_subst x s v1) (value_subst x s v2) (tm_subst x s e)
-       | tleteffop op v1 e => tleteffop op (value_subst x s v1) (tm_subst x s e)
-       | tmatchb v e1 e2 => tmatchb (value_subst x s v) (tm_subst x s e1) (tm_subst x s e2)
+       | treturn v => treturn (subst_value x s v)
+       | tlete e1 e2 => tlete (subst_tm x s e1) (subst_tm x s e2)
+       | tletapp v1 v2 e => tletapp (subst_value x s v1) (subst_value x s v2) (subst_tm x s e)
+       | tleteffop op v1 e => tleteffop op (subst_value x s v1) (subst_tm x s e)
+       | tmatchb v e1 e2 => tmatchb (subst_value x s v) (subst_tm x s e1) (subst_tm x s e2)
        end.
 
 #[global]
-Instance subst_value_with_value : Subst value value := value_subst.
+Instance subst_value_with_value : Subst value value := subst_value.
 Arguments subst_value_with_value /.
 
 #[global]
-Instance subst_tm_with_value : Subst value tm := tm_subst.
+Instance subst_tm_with_value : Subst value tm := subst_tm.
 Arguments open_tm_with_value /.
 
 #[global]
 Instance subst_value_with_atom : Subst atom value :=
-  fun x (a : atom) (v : value) => value_subst x (vfvar a) v.
+  fun x (a : atom) (v : value) => subst_value x (vfvar a) v.
 Arguments subst_value_with_atom /.
 
 #[global]
 Instance subst_tm_with_atom : Subst atom tm :=
-  fun k (a : atom) (e : tm) => tm_subst k (vfvar a) e.
+  fun k (a : atom) (e : tm) => subst_tm k (vfvar a) e.
 Arguments subst_tm_with_atom /.
 
 (* Syntax Suger *)
 Definition mk_app (e: tm) (v: tm) :=
-  tlete e (tlete v (tletapp (vbvar 1) (vbvar 0) (vbvar 0))).
+  tlete e (tlete v (tletapp (vbvar 1) (vbvar 0) (treturn (vbvar 0)))).
 
 
 (* Well-founded constraint of base type for fixed point. *)

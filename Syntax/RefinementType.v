@@ -76,37 +76,37 @@ Definition flip_rty (τ: rty) :=
 
 (** Type erasure (Fig. 5) *)
 
-Fixpoint rty_erase ρ : ty :=
+Fixpoint erase_rty ρ : ty :=
   match ρ with
   | {: b | ϕ } => b
   | [: b | ϕ ] => b
-  | ρ ⇨ τ => (rty_erase ρ) ⤍ (rty_erase τ)
+  | ρ ⇨ τ => (erase_rty ρ) ⤍ (erase_rty τ)
   end.
 
-Notation " '⌊' ty '⌋' " := (rty_erase ty) (at level 5, format "⌊ ty ⌋", ty constr).
+Notation " '⌊' ty '⌋' " := (erase_rty ty) (at level 5, format "⌊ ty ⌋", ty constr).
 
-Definition ctx_erase (Γ: listctx rty) :=
-  ⋃ ((List.map (fun e => {[e.1 := rty_erase e.2]}) Γ): list (amap ty)).
+Definition erase_ctx (Γ: listctx rty) :=
+  ⋃ ((List.map (fun e => {[e.1 := erase_rty e.2]}) Γ): list (amap ty)).
 
-Notation " '⌊' Γ '⌋*' " := (ctx_erase Γ) (at level 5, format "⌊ Γ ⌋*", Γ constr).
+Notation " '⌊' Γ '⌋*' " := (erase_ctx Γ) (at level 5, format "⌊ Γ ⌋*", Γ constr).
 
 (** * Naming related definitions *)
 
-Fixpoint rty_fv ρ : aset :=
+Fixpoint fv_rty ρ : aset :=
   match ρ with
-  | {: _ | ϕ } => qualifier_fv ϕ
-  | [: _ | ϕ ] => qualifier_fv ϕ
-  | ρ ⇨ τ => rty_fv ρ ∪ rty_fv τ
+  | {: _ | ϕ } => fv_qualifier ϕ
+  | [: _ | ϕ ] => fv_qualifier ϕ
+  | ρ ⇨ τ => fv_rty ρ ∪ fv_rty τ
   end.
 
 #[global]
-  Instance rty_stale : @Stale aset rty := rty_fv.
+  Instance rty_stale : @Stale aset rty := fv_rty.
 Arguments rty_stale /.
 
 Fixpoint open_rty (k: nat) (s: value) (ρ: rty) : rty :=
   match ρ with
-  | {: b | ϕ } => {: b | qualifier_open (S k) s ϕ }
-  | [: b | ϕ ] => [: b | qualifier_open (S k) s ϕ ]
+  | {: b | ϕ } => {: b | open_qualifier (S k) s ϕ }
+  | [: b | ϕ ] => [: b | open_qualifier (S k) s ϕ ]
   | ρ ⇨ τ => (open_rty k s ρ) ⇨ (open_rty (S k) s τ)
   end.
 
@@ -119,28 +119,28 @@ Instance open_rty_with_atom : Open atom rty :=
   fun k (a : atom) (ρ : rty) => open_rty k (vfvar a) ρ.
 Arguments open_rty_with_atom /.
 
-Fixpoint rty_subst (k: atom) (s: value) (ρ: rty) : rty :=
+Fixpoint subst_rty (k: atom) (s: value) (ρ: rty) : rty :=
   match ρ with
-  | {: b | ϕ} => {: b | qualifier_subst k s ϕ}
-  | [: b | ϕ] => [: b | qualifier_subst k s ϕ]
-  | ρ ⇨ τ => (rty_subst k s ρ) ⇨ (rty_subst k s τ)
+  | {: b | ϕ} => {: b | subst_qualifier k s ϕ}
+  | [: b | ϕ] => [: b | subst_qualifier k s ϕ]
+  | ρ ⇨ τ => (subst_rty k s ρ) ⇨ (subst_rty k s τ)
   end.
 
 #[global]
-Instance subst_rty_with_value : Subst value rty := rty_subst.
+Instance subst_rty_with_value : Subst value rty := subst_rty.
 Arguments subst_rty_with_value /.
 
 #[global]
 Instance subst_rty_with_atom : Subst atom rty :=
-  fun k (a : atom) (ρ : rty) => rty_subst k (vfvar a) ρ.
+  fun k (a : atom) (ρ : rty) => subst_rty k (vfvar a) ρ.
 Arguments subst_rty_with_atom /.
 
 (** Local closure *)
 (** NOTE: To alaign with denotation, we assume the function type doesn't appear in transduce. *)
 (** NOTE: all (L: aset) should be the first hypothesis. *)
 Inductive lc_rty : rty -> Prop :=
-| lc_rtyOver: forall b ϕ, lc_phi1 ϕ -> fine_rty {: b | ϕ} -> lc_rty {: b | ϕ}
-| lc_rtyUnder: forall b ϕ, lc_phi1 ϕ -> fine_rty [: b | ϕ] -> lc_rty [: b | ϕ]
+| lc_rtyOver: forall b ϕ, body ϕ -> fine_rty {: b | ϕ} -> lc_rty {: b | ϕ}
+| lc_rtyUnder: forall b ϕ, body ϕ -> fine_rty [: b | ϕ] -> lc_rty [: b | ϕ]
 | lc_rtyArr: forall ρ τ (L : aset),
     (forall x : atom, x ∉ L -> lc_rty (τ ^^ x)) ->
     fine_rty (ρ ⇨ τ) -> lc_rty ρ ->
@@ -162,7 +162,7 @@ Definition body_rty τ := exists (L: aset), ∀ x : atom, x ∉ L → lc_rty (τ
 (** Closed under free variable set *)
 
 Inductive closed_rty (d : aset) (ρ: rty): Prop :=
-| closed_rty_: lc_rty ρ -> rty_fv ρ ⊆ d -> closed_rty d ρ.
+| closed_rty_: lc_rty ρ -> fv_rty ρ ⊆ d -> closed_rty d ρ.
 
 Lemma closed_rty_fine: forall d τ, closed_rty d τ -> fine_rty τ.
 Proof.

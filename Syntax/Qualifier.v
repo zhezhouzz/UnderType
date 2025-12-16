@@ -92,44 +92,44 @@ Notation " ϕ1 '&' ϕ2 " := (qualifier_and ϕ1 ϕ2)
 (** * Naming related definitions and lemmas *)
 
 (** free variables *)
-Definition qualifier_fv ϕ : aset :=
+Definition fv_qualifier ϕ : aset :=
   match ϕ with
   | qual vals _ => Vector.fold_right (fun v s => fv_value v ∪ s) vals ∅
   end.
 
 #[global]
-Instance qualifier_stale : @Stale aset qualifier := qualifier_fv.
+Instance qualifier_stale : @Stale aset qualifier := fv_qualifier.
 Arguments qualifier_stale /.
 
-Definition qualifier_open (k: nat) (s: value) (ϕ: qualifier) : qualifier :=
+Definition open_qualifier (k: nat) (s: value) (ϕ: qualifier) : qualifier :=
   match ϕ with
   | qual vals prop =>
       qual (vmap (open_value k s) vals) prop
   end.
 
 #[global]
-Instance open_qualifier_with_value : Open value qualifier := qualifier_open.
+Instance open_qualifier_with_value : Open value qualifier := open_qualifier.
 Arguments open_qualifier_with_value /.
 
 (* Opening values/terms with an atom binder (used in [lc] definitions) *)
 #[global]
 Instance open_qualifier_with_atom : Open atom qualifier :=
-  fun k (a : atom) (ϕ : qualifier) => qualifier_open k (vfvar a) ϕ.
+  fun k (a : atom) (ϕ : qualifier) => open_qualifier k (vfvar a) ϕ.
 Arguments open_qualifier_with_atom /.
 
-Definition qualifier_subst (x: atom) (v: value) (ϕ: qualifier) : qualifier :=
+Definition subst_qualifier (x: atom) (v: value) (ϕ: qualifier) : qualifier :=
   match ϕ with
   | qual vals prop =>
-      qual (vmap (value_subst x v) vals) prop
+      qual (vmap (subst_value x v) vals) prop
   end.
 
 #[global]
-Instance subst_qualifier_with_value : Subst value qualifier := qualifier_subst.
+Instance subst_qualifier_with_value : Subst value qualifier := subst_qualifier.
 Arguments subst_qualifier_with_value /.
 
 Inductive lc_qualifier : qualifier -> Prop :=
 | lc_qual n vals prop :
-  Vector.Forall (fun v => lc (treturn v)) vals ->
+  Vector.Forall (fun v => lc v) vals ->
   lc_qualifier (@qual n vals prop)
 .
 
@@ -158,17 +158,5 @@ Notation " 'b0:c≺' c " :=
     (at level 5).
 
 (** Aux *)
-
-Definition lc_phi1 (ϕ: qualifier) :=
-  exists (L : aset), (forall x : atom, x ∉ L -> lc (ϕ ^^ x)).
-
-Definition lc_phi2 (ϕ: qualifier) :=
-  exists (L : aset), (forall (x : atom), x ∉ L -> forall (y : atom), y ∉ L -> lc ({0 ~> y} ({1 ~> x} ϕ))).
-
-Inductive closed_phi1 (L: aset) (ϕ: qualifier): Prop :=
-| closed_phi_1: stale ϕ ⊆ L -> lc_phi1 ϕ -> closed_phi1 L ϕ.
-  
-Inductive closed_phi2 (L: aset) (ϕ: qualifier): Prop :=
-| closed_phi_2: stale ϕ ⊆ L -> lc_phi2 ϕ -> closed_phi2 L ϕ.
 
 Notation "'⟦' ϕ '⟧q' " := (denote_qualifier ϕ) (at level 20, format "⟦ ϕ ⟧q", ϕ constr).

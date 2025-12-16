@@ -43,8 +43,8 @@ with value_has_type : context -> value -> ty -> Prop :=
     (forall (x: atom), x ∉ L -> tm_has_type (<[x := Tx]> Γ) (e ^^ x) T) ->
     value_has_type Γ (vlam Tx e) (Tx ⤍ T)
 | BtFix : forall Γ (Tx: base_ty) T e (L: aset),
-    (forall (x: atom), x ∉ L -> tm_has_type (<[x := TBase Tx]>Γ) (vlam (Tx ⤍ T) e ^^ x) ((Tx ⤍ T) ⤍ T)) ->
-    value_has_type Γ (vfix (Tx ⤍ T) (vlam (Tx ⤍ T) e)) (Tx ⤍ T).
+    (forall (x: atom), x ∉ L -> value_has_type (<[x := TBase Tx]>Γ) (vlam (Tx ⤍ T) e ^^ (vfvar x)) ((Tx ⤍ T) ⤍ T)) ->
+    value_has_type Γ (vfix (Tx ⤍ T) (treturn (vlam (Tx ⤍ T) e))) (Tx ⤍ T).
 
 Scheme value_has_type_mutual_rec := Induction for value_has_type Sort Prop
     with tm_has_type_mutual_rec := Induction for tm_has_type Sort Prop.
