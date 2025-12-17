@@ -10,6 +10,7 @@ Syntax/RefinementType.v
 Syntax/Syntax.v
 LocallyNameless/LangLc.v
 LocallyNameless/QualifierLc.v
+LocallyNameless/RtyLc.v
 BasicTyping.v
 # CoreLang.v
 # NamelessTactics.v

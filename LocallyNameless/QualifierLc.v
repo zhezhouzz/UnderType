@@ -145,15 +145,6 @@ Proof.
 Qed.
 Arguments SubstOpen_qualifier /.
 
-#[global] Instance SubstOpenClosed_qualifier: SubstOpenClosed qualifier.
-Proof.
-  unfold SubstOpenClosed.
-  intros ϕ x u w k H Hlc.
-  rewrite subst_open; auto.
-  rewrite (subst_fresh); eauto. set_solver.
-Qed.
-Arguments SubstOpenClosed_qualifier /.
-
 #[global] Instance SubstLc_qualifier: SubstLc qualifier.
 Proof.
   unfold SubstLc.
@@ -255,7 +246,7 @@ Arguments OpenLcRespect_qualifier /.
 
 Arguments qualifier_and : simpl never.
 
-Class SubstBody2 A `{Stale aset A} `{open: Open value A} `{Subst value A} `{lc : Lc A}:= subst_body :
+Class SubstBody2 A `{Stale aset A} `{open: Open value A} `{Subst value A} `{lc : Lc A}:= subst_body2 :
 forall x (u: value) (e: A), body2 e -> lc_value u -> body2 ({x := u} e).
 
 #[global] Instance SubstBody2_qualifier: SubstBody2 qualifier.
@@ -387,7 +378,7 @@ forall (u v1 v2: value) (e: A) i j1 j2,
     i <> j1 -> i <> j2 -> j1 <> j2 ->
     {i ~> u} ({j1 ~> v1} ({j2 ~> v2} e)) = {j1 ~> v1} ({j2 ~> v2} e) -> {i ~> u} e = e.
 
-#[global] Instance Fact1Twice_all 
+Lemma Fact1Twice_all 
   (A : Type)
   (staleA : Stale A)
   (openA  : Open value A)
@@ -400,7 +391,20 @@ Proof.
   eapply fact1 with (j := j1) (v:= v1); eauto.
   eapply fact1 with (j := j2) (v:= v2); eauto.
 Qed.
-Arguments Fact1Twice_all /.
+
+#[global] Instance Fact1Twice_value: Fact1Twice value.
+Proof.
+  apply Fact1Twice_all. all: typeclasses eauto.
+Qed.
+Arguments Fact1Twice_value /.
+
+#[global] Instance Fact1Twice_qualifier: Fact1Twice qualifier.
+Proof.
+  apply Fact1Twice_all. all: typeclasses eauto.
+Qed.
+Arguments Fact1Twice_qualifier /.
+
+
 
 Class OpenRecBody A `{Stale aset A} `{Open value A} `{Lc A} := open_rec_body :
 forall (e: A), body e -> forall (k: nat) (v: value), {S k ~> v} e = e.

@@ -501,7 +501,7 @@ Arguments OpenCloseVarAux_value /.
 Class OpenCloseVar A `{Stale aset A} `{Open value A} `{Close A} `{Lc A} := open_close_var :
 forall (e: A) (x: atom), lc e -> {0 ~> (vfvar x)} ({0 <~ x} e) = e.
 
-#[global] Instance OpenCloseVar_all
+Lemma OpenCloseVar_all
   (A : Type)
   (staleA : Stale A)
   (openA  : Open value A)
@@ -516,6 +516,14 @@ Proof.
   apply open_rec_lc; auto.
 Qed.
 
+#[global] Instance OpenCloseVar_tm : OpenCloseVar tm.
+Proof. apply OpenCloseVar_all; typeclasses eauto. Qed.
+Arguments OpenCloseVar_tm /.
+
+#[global] Instance OpenCloseVar_value : OpenCloseVar value.
+Proof. apply OpenCloseVar_all; typeclasses eauto. Qed.
+Arguments OpenCloseVar_value /.
+
 (* The third class of lemmas *)
 
 Class SubstIntro A `{Stale aset A} `{Open value A} `{Subst value A} `{Lc A} := subst_intro :
@@ -523,7 +531,7 @@ forall (e: A) (x:atom) (w: value) (k: nat),
     x # e ->
     lc w -> {x := w} ({k ~> (vfvar x)} e) = ({k ~> w} e).
 
-#[global] Instance SubstIntro_all
+Lemma SubstIntro_all
   (A : Type)
   (staleA : Stale A)
   (openA  : Open value A)
@@ -538,28 +546,44 @@ Proof.
   ln_simpl; f_equal; hauto.
 Qed.
 
+#[global] Instance SubstIntro_tm : SubstIntro tm.
+Proof. apply SubstIntro_all; typeclasses eauto. Qed.
+Arguments SubstIntro_tm /.
+
+#[global] Instance SubstIntro_value : SubstIntro value.
+Proof. apply SubstIntro_all; typeclasses eauto. Qed.
+Arguments SubstIntro_value /.
+
 Class SubstOpenVar A `{Stale aset A} `{Open value A} `{Subst value A} `{Lc A} := subst_open_var :
 forall x y (u: value) (e: A) (k: nat),
     x <> y -> lc u -> {x := u} ({k ~> (vfvar y)} e) = ({k ~> (vfvar y)} ({x := u} e)).
 
-#[global] Instance SubstOpenVar_all
-  (A : Type)
-  (staleA : Stale A)
-  (openA  : Open value A)
-  (substA : Subst value A)
-  (lcA    : Lc A)
-  (subst_openA : @SubstOpen A staleA openA substA lcA)
-  : @SubstOpenVar A staleA openA substA lcA.
+Lemma SubstOpenVar_all
+(A : Type)
+(staleA : Stale A)
+(openA  : Open value A)
+(substA : Subst value A)
+(lcA    : Lc A)
+(subst_openA : @SubstOpen A staleA openA substA lcA)
+: @SubstOpenVar A staleA openA substA lcA.
 Proof.
   unfold SubstOpenVar. intros x y u e k Hxy Hlc.
   rewrite subst_open; auto. ln_simpl; f_equal; hauto.
 Qed.
-Arguments SubstOpenVar_all /.
+
+#[global] Instance SubstOpenVar_tm: SubstOpenVar tm.
+Proof.
+  apply SubstOpenVar_all. all: typeclasses eauto.
+Qed.
+Arguments SubstOpenVar_tm /.
+#[global] Instance SubstOpenVar_value: SubstOpenVar value.
+Proof. apply SubstOpenVar_all. all: typeclasses eauto. Qed.
+Arguments SubstOpenVar_value /.
 
 Class SubstBody A `{Stale aset A} `{open: Open value A} `{Subst value A} `{lc : Lc A}:= subst_body :
 forall x (u: value) (e: A), body e -> lc_value u -> body ({x := u} e).
 
-#[global] Instance SubstBody_all
+Lemma SubstBody_all
   (A : Type)
   (staleA : Stale A)
   (openA  : Open value A)
@@ -576,10 +600,18 @@ Proof.
   apply subst_lc; auto. apply Hbody; my_set_solver.
 Qed.
 
+#[global] Instance SubstBody_tm : SubstBody tm.
+Proof. apply SubstBody_all; typeclasses eauto. Qed.
+Arguments SubstBody_tm /.
+
+#[global] Instance SubstBody_value : SubstBody value.
+Proof. apply SubstBody_all; typeclasses eauto. Qed.
+Arguments SubstBody_value /.
+
 Class OpenLc A `{Stale aset A} `{Open value A} `{Lc A} := open_lc :
 forall (e: A) (u: value), body e -> lc u -> lc ({0 ~> u} e).
 
-#[global] Instance OpenLc_all
+Lemma OpenLc_all
   (A : Type)
   (staleA : Stale A)
   (openA  : Open value A)
@@ -595,6 +627,15 @@ Proof.
   apply subst_lc; auto. apply Hbody; my_set_solver.
   my_set_solver.
 Qed.
+
+#[global] Instance OpenLc_tm : OpenLc tm.
+Proof.
+  apply OpenLc_all with (staleA := stale) (openA := open) (substA := subst) (lcA := lc); typeclasses eauto. Qed.
+Arguments OpenLc_tm /.
+
+#[global] Instance OpenLc_value : OpenLc value.
+Proof. apply OpenLc_all with (staleA := stale) (openA := open) (substA := subst) (lcA := lc); typeclasses eauto. Qed.
+Arguments OpenLc_value /.
 
 Class OpenWithFreshIncludeFv A `{Stale aset A} `{Open value A} `{Lc A} := open_with_fresh_include_fv :
 forall (x: atom) (e: A) (k: nat),
@@ -639,17 +680,26 @@ Arguments OpenWithFreshIncludeFv_value /.
 Class LcImpliesBody A `{Open value A} `{Lc A} := lc_implies_body :
 forall (e: A), lc e -> body e.
 
-#[global] Instance LcImpliesBody_all
-    (A : Type)
-    `{stale: Stale aset A}
-    `{open: Open value A} `{lc: Lc A}
-    `{open_rec_lc: @OpenRecLc A stale open lc}
-: @LcImpliesBody A open lc.
+Lemma LcImpliesBody_all
+  (A : Type)
+  (staleA : Stale A)
+  (openA  : Open value A)
+  (lcA    : Lc A)
+  (openRecLcA : @OpenRecLc A staleA openA lcA)
+  : @LcImpliesBody A openA lcA.
 Proof.
   unfold LcImpliesBody.
   intros. exists ∅; intros; rewrite open_rec_lc; auto.
 Qed.
 Arguments LcImpliesBody_all /.
+
+#[global] Instance LcImpliesBody_tm : LcImpliesBody tm.
+Proof. apply LcImpliesBody_all with (staleA := stale) (openA := open) (lcA := lc); typeclasses eauto. Qed.
+Arguments LcImpliesBody_tm /.
+
+#[global] Instance LcImpliesBody_value : LcImpliesBody value.
+Proof. apply LcImpliesBody_all with (staleA := stale) (openA := open) (lcA := lc); typeclasses eauto. Qed.
+Arguments LcImpliesBody_value /.
 
 (* Ltac lc_solver :=
   repeat match goal with
@@ -704,7 +754,7 @@ Class SubstAsCloseOpen A `{Stale aset A} `{Open value A} `{Close A} `{Subst valu
 forall (x: atom) (u: value) (e: A),
     lc e -> {0 ~> u} ({0 <~ x} e) = {x := u} e.
 
-#[global] Instance SubstAsCloseOpen_all
+Lemma SubstAsCloseOpen_all
   (A : Type)
   (staleA : Stale A)
   (openA  : Open value A)
@@ -719,6 +769,14 @@ Proof.
   intros x u e Hlc. eapply subst_as_close_open_aux; auto.
 Qed.
 Arguments SubstAsCloseOpen_all /.
+
+#[global] Instance SubstAsCloseOpen_tm : SubstAsCloseOpen tm.
+Proof. apply SubstAsCloseOpen_all; typeclasses eauto. Qed.
+Arguments SubstAsCloseOpen_tm /.
+
+#[global] Instance SubstAsCloseOpen_value : SubstAsCloseOpen value.
+Proof. apply SubstAsCloseOpen_all; typeclasses eauto. Qed.
+Arguments SubstAsCloseOpen_value /.
 
 Class CloseFreshRec A `{Stale aset A} `{Close A} := close_fresh_rec :
 forall (x: atom) (e: A) (k: nat), x # e -> { k <~ x} e = e.
@@ -1010,7 +1068,7 @@ Arguments CloseRmFv_value /.
 Class CloseThenSubstSame A `{Stale aset A} `{Close A} `{Subst value A} := close_then_subst_same :
 forall (x: atom) (v_x: value) (e: A), ({x := v_x } (x \\ e)) = (x \\ e).
 
-#[global] Instance CloseThenSubstSame_all
+Lemma CloseThenSubstSame_all
   (A : Type)
   (staleA : Stale A)
   (closeA : Close A)
@@ -1023,12 +1081,20 @@ Proof.
 Qed.
 Arguments CloseThenSubstSame_all /.
 
+#[global] Instance CloseThenSubstSame_tm : CloseThenSubstSame tm.
+Proof. apply CloseThenSubstSame_all; typeclasses eauto. Qed.
+Arguments CloseThenSubstSame_tm /.
+
+#[global] Instance CloseThenSubstSame_value : CloseThenSubstSame value.
+Proof. apply CloseThenSubstSame_all; typeclasses eauto. Qed.
+Arguments CloseThenSubstSame_value /.
+
 Class SubstOpenClosed A `{Stale aset A} `{Open value A} `{Subst value A} `{Lc A} := subst_open_closed :
 forall (e :A) (x : atom) (u w : value) (k : nat),
     stale u ≡ ∅ ->
     lc w → {x := w } ({k ~> u} e) = {k ~> u} ({x := w } e).
 
-#[global] Instance SubstOpenClosed_all
+Lemma SubstOpenClosed_all
   (A : Type)
   (staleA : Stale A)
   (openA  : Open value A)
@@ -1043,10 +1109,18 @@ Proof.
 Qed.
 Arguments SubstOpenClosed_all /.
 
+#[global] Instance SubstOpenClosed_tm : SubstOpenClosed tm.
+Proof. apply SubstOpenClosed_all; typeclasses eauto. Qed.
+Arguments SubstOpenClosed_tm /.
+
+#[global] Instance SubstOpenClosed_value : SubstOpenClosed value.
+Proof. apply SubstOpenClosed_all; typeclasses eauto. Qed.
+Arguments SubstOpenClosed_value /.
+
 Class BodyLcAfterClose A `{Stale aset A} `{Open value A} `{Close A} `{Lc A} := body_lc_after_close :
 forall (x: atom) (e: A), lc e -> body ({0 <~ x} e).
 
-#[global] Instance BodyLcAfterClose_all
+Lemma BodyLcAfterClose_all
   (A : Type)
   (staleA : Stale A)
   (openA  : Open value A)
@@ -1064,10 +1138,18 @@ Proof.
 Qed.
 Arguments BodyLcAfterClose_all /.
 
+#[global] Instance BodyLcAfterClose_tm : BodyLcAfterClose tm.
+Proof. apply BodyLcAfterClose_all with (staleA := stale) (openA := open) (closeA := close) (substA := subst) (lcA := lc); typeclasses eauto. Qed.
+Arguments BodyLcAfterClose_tm /.
+
+#[global] Instance BodyLcAfterClose_value : BodyLcAfterClose value.
+Proof. apply BodyLcAfterClose_all with (staleA := stale) (openA := open) (closeA := close) (substA := subst) (lcA := lc); typeclasses eauto. Qed.
+Arguments BodyLcAfterClose_value /.
+
 Class LcFreshVarImpliesBody A `{Stale aset A} `{Open value A} `{Close A} `{Lc A} := lc_fresh_var_implies_body :
 forall (e: A) (x: atom), x # e -> lc (e ^^ (vfvar x)) -> body e.
 
-#[global] Instance LcFreshVarImpliesBody_all
+Lemma LcFreshVarImpliesBody_all
   (A : Type)
   (staleA : Stale A)
   (openA  : Open value A)
@@ -1081,6 +1163,14 @@ Proof.
   eapply (body_lc_after_close) in Hlc; eauto. rewrite close_open_var in Hlc; auto.
 Qed.
 Arguments LcFreshVarImpliesBody_all /.
+
+#[global] Instance LcFreshVarImpliesBody_tm : LcFreshVarImpliesBody tm.
+Proof. apply LcFreshVarImpliesBody_all; typeclasses eauto. Qed.
+Arguments LcFreshVarImpliesBody_tm /.
+
+#[global] Instance LcFreshVarImpliesBody_value : LcFreshVarImpliesBody value.
+Proof. apply LcFreshVarImpliesBody_all; typeclasses eauto. Qed.
+Arguments LcFreshVarImpliesBody_value /.
 
 Class OpenNotInEq A `{Stale aset A} `{Open value A} := open_not_in_eq :
 forall (x: atom) (e: A) (k: nat), x # ({k ~> (vfvar x)} e) -> {k ~> (vfvar x)} e = e.

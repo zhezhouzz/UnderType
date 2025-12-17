@@ -203,3 +203,13 @@ Qed.
 Ltac fine_rty_simp := simpl in *; repeat fine_rty_simp_aux.
 
 Ltac fine_rty_solver := fine_rty_simp; eauto.
+
+Ltac solve_fine_rty :=
+  repeat fine_rty_simp_aux; eauto;
+  match goal with
+  | [ _ : _ |- context [rty_subst _ _ ?ρ] ] =>
+      destruct ρ; simpl in *; eauto; intuition
+  | [ _ : _ |- fine_rty _ ] =>
+      simpl in *;
+      intuition; eauto
+  end.

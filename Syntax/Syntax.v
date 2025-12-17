@@ -19,6 +19,8 @@ Ltac fold_syntax_class :=
   change (fv_rty ?r) with (stale r) in *;
   change (lc_tm ?e) with (lc e) in *;
   change (lc_value ?v) with (lc v) in *;
+  change (lc_qualifier ?q) with (lc q) in *;
+  change (lc_rty ?r) with (lc r) in *;
 
   (* Class instances that may appear after [autounfold with class_simpl] *)
   change (subst_tm_with_value ?x ?w ?e) with ({x := w} e) in *;
