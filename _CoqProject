@@ -7,15 +7,19 @@ Syntax/Primitives.v
 Syntax/Lang.v
 Syntax/Qualifier.v
 Syntax/RefinementType.v
+Syntax/BasicTyping.v
 Syntax/Syntax.v
+LocallyNameless/FineRty.v
 LocallyNameless/LangLc.v
 LocallyNameless/QualifierLc.v
 LocallyNameless/RtyLc.v
-BasicTyping.v
+LocallyNameless/Lc.v
+OperationalSemantics.v
+BasicTypingProp.v
+Instantiation.v
 # CoreLang.v
 # NamelessTactics.v
 # CoreLangProp.v
-# OperationalSemantics.v
 # BasicTyping.v
 # BasicTypingProp.v
 # Qualifier.v

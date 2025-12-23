@@ -67,17 +67,6 @@ Arguments open_value_with_value /.
 Instance open_tm_with_value : Open value tm := open_tm.
 Arguments open_tm_with_value /.
 
-(* Opening values/terms with an atom binder (used in [lc] definitions) *)
-#[global]
-Instance open_value_with_atom : Open atom value :=
-  fun k (a : atom) (v : value) => open_value k (vfvar a) v.
-Arguments open_value_with_atom /.
-
-#[global]
-Instance open_tm_with_atom : Open atom tm :=
-  fun k (a : atom) (e : tm) => open_tm k (vfvar a) e.
-Arguments open_tm_with_atom /.
-
 (** close *)
 Fixpoint close_value (x : atom) (s : nat) (v : value): value :=
   match v with
@@ -145,14 +134,11 @@ Arguments locally_closed_value_instance /.
 Instance locally_closed_tm_instance : Lc tm := lc_tm.
 Arguments locally_closed_tm_instance /.
 
-Class Body A `{Open value A} `{Lc A} := body : A -> Prop.
-Class Body2 A `{Open value A} `{Lc A} := body2 : A -> Prop.
-
-#[global] Instance Body_default (A : Type) `{Open value A} `{Lc A} : Body A :=
-  fun e => exists (L : aset), forall (x : atom), x ∉ L -> lc ({0 ~> (vfvar x)} e).
-
-#[global] Instance Body2_default (A : Type) `{Open value A} `{Lc A} : Body2 A :=
-  fun e => exists (L : aset), forall (x : atom), x ∉ L -> forall (y : atom), y ∉ L -> lc ({0 ~> (vfvar y)} ({1 ~> (vfvar x)} e)).
+Definition body {A: Type} (e: A) `{Open value A} `{Lc A} : Prop :=
+exists (L : aset), forall (x : atom), x ∉ L -> lc ({0 ~> (vfvar x)} e).
+ 
+Definition body2 {A: Type} (e: A) `{Open value A} `{Lc A} : Prop :=
+exists (L : aset), forall (x : atom), x ∉ L -> forall (y : atom), y ∉ L ∪ {[x]} -> lc ({0 ~> (vfvar y)} ({1 ~> (vfvar x)} e)).
 
 (** free variables *)
 Fixpoint fv_value (v : value): aset :=
@@ -174,11 +160,11 @@ with fv_tm (e : tm): aset :=
        end.
 
 #[global]
-Instance stale_value_instance : @Stale aset value := fv_value.
+Instance stale_value_instance : Stale value := fv_value.
 Arguments stale_value_instance /.
 
 #[global]
-Instance stale_tm_instance : @Stale aset tm := fv_tm.
+Instance stale_tm_instance : Stale tm := fv_tm.
 Arguments stale_tm_instance /.
 
 (** substitution *)
@@ -207,16 +193,6 @@ Arguments subst_value_with_value /.
 #[global]
 Instance subst_tm_with_value : Subst value tm := subst_tm.
 Arguments open_tm_with_value /.
-
-#[global]
-Instance subst_value_with_atom : Subst atom value :=
-  fun x (a : atom) (v : value) => subst_value x (vfvar a) v.
-Arguments subst_value_with_atom /.
-
-#[global]
-Instance subst_tm_with_atom : Subst atom tm :=
-  fun k (a : atom) (e : tm) => subst_tm k (vfvar a) e.
-Arguments subst_tm_with_atom /.
 
 (* Syntax Suger *)
 Definition mk_app (e: tm) (v: tm) :=

@@ -58,6 +58,18 @@ Proof.
   - constructor. auto.
 Qed.
 
+Lemma body_return_iff_body_value: forall v, body (treturn v) <-> body v.
+Proof.
+  unfold body;
+  split; intros.
+  - mydestr. auto_exists_L. intros y Hy. specialize_with y.
+    ln_simpl; eauto.
+    rewrite <- lc_return_iff_lc_value; eauto.
+  - mydestr. auto_exists_L. intros y Hy. specialize_with y.
+    ln_simpl; eauto.
+    rewrite lc_return_iff_lc_value; eauto.
+Qed.
+
 Ltac rewrite_by_set_solver :=
   repeat
   match goal with
@@ -70,7 +82,7 @@ Ltac rewrite_by_set_solver :=
    the definition is well-typed for arbitrary [A], but in all our concrete
    uses (e.g. [A = tm]) these parameters are instantiated with the canonical
    global instances from [Syntax.Lang]. *)
-Class CloseOpenVar A `{Stale aset A} `{Open value A} `{Close A} := close_open_var :
+Class CloseOpenVar A `{Stale A} `{Open value A} `{Close A} := close_open_var :
   forall (e: A) (x: atom) (k: nat), x # e -> {k <~ x} ({k ~> (vfvar x)} e) = e.
 
 #[global] Instance CloseOpenVar_tm : CloseOpenVar tm.
@@ -97,7 +109,7 @@ Proof.
 Qed.
 Arguments CloseOpenVar_value /.
 
-Class OpenFv A `{Stale aset A} `{Open value A} := open_fv :
+Class OpenFv A `{Stale A} `{Open value A} := open_fv :
    forall (v: A) (u: value) (k: nat), 
    stale ({k ~> u} v) ⊆ stale u ∪ stale v.
 
@@ -124,7 +136,7 @@ Proof.
 Qed.
 Arguments OpenFv_tm /.
 
-Class OpenFvPrime A `{Stale aset A} `{Open value A} := open_fv' :
+Class OpenFvPrime A `{Stale A} `{Open value A} := open_fv' :
 forall (v: A) (u: value) (k: nat), stale v ⊆ stale ({k ~> u} v).
 
 #[global] Instance OpenFvPrime_value : OpenFvPrime value.
@@ -149,7 +161,7 @@ Proof.
 Qed.
 Arguments OpenFvPrime_tm /.
 
-Class CloseVarFv A `{Stale aset A} `{Close A} := close_var_fv :
+Class CloseVarFv A `{Stale A} `{Close A} := close_var_fv :
 forall (v: A) (x: atom) (k: nat), stale ({k <~ x} v) = (stale v) ∖ {[x]}.
 
 #[global] Instance CloseVarFv_value : CloseVarFv value.
@@ -174,7 +186,7 @@ Proof.
 Qed.
 Arguments CloseVarFv_tm /.
 
-Class SubstFresh A `{Stale aset A} `{Subst value A} := subst_fresh :
+Class SubstFresh A `{Stale A} `{Subst value A} := subst_fresh :
 forall (v: A) (x:atom) (u: value), x # v -> {x := u} v = v.
 
 #[global] Instance SubstFresh_value : SubstFresh value.
@@ -205,7 +217,7 @@ Ltac ex_specialize_L :=
   end.
 
 (** There is a typo in the paper *)
-Class Fact1 A `{Stale aset A} `{Open value A} := fact1 :
+Class Fact1 A `{Stale A} `{Open value A} := fact1 :
 forall (u v: value) (e: A) i j,
     i <> j -> {i ~> u} ({j ~> v} e) = {j ~> v} e -> {i ~> u} e = e.
 
@@ -272,6 +284,7 @@ Ltac lc_solver_aux1:=
   match goal with
     | [H: lc (vbvar _) |- _ ] => inversion H
     | [H: lc (treturn _) |- _ ] => rewrite lc_return_iff_lc_value in H; auto
+    | [H: body (treturn _) |- _ ] => rewrite body_return_iff_body_value in H; auto
     | [H: lc (tlete _ _) |- body _ ] => rewrite lete_lc_body in H; mydestr; auto
     | [H: lc (tletapp _ _ _) |- body _ ] => rewrite letapp_lc_body in H; mydestr; auto
     | [H: lc (tleteffop _ _ _) |- body _ ] => rewrite leteffop_lc_body in H; mydestr; auto
@@ -294,19 +307,20 @@ Ltac lc_solver_aux1:=
     | [ |- lc (vfix _ _)] => rewrite lc_fix_iff_body; auto
     | [ |- lc (vlam _ _)] => rewrite lc_abs_iff_body; auto
     | [ |- lc (treturn _)] => rewrite lc_return_iff_lc_value; auto
+    | [ |- body (treturn _)] => rewrite body_return_iff_body_value; auto
     | [ |- lc (tmatchb _ _ _)] => rewrite match_lc_body; (repeat split; auto)
     end.
 
 Ltac lc_solver1:= 
   autounfold with class_simpl; simpl; mydestr; auto;
-  repeat (lc_solver_aux1; auto); fold_syntax_class.
+  repeat (lc_solver_aux1; auto); fold_syntax_class; eauto.
 
 (* Lemma treturn_eq: forall (v1 v2: value), treturn v1 = treturn v2 -> v1 = v2.
 Proof.
   intros. inversion H. auto.
 Qed. *)
 
-Class OpenRecLc A `{Stale aset A} `{Open value A} `{Lc A} := open_rec_lc :
+Class OpenRecLc A `{Stale A} `{Open value A} `{Lc A} := open_rec_lc :
 forall (e: A), lc e -> forall (k: nat) (v: value), {k ~> v} e = e.
 
 #[global] Instance OpenRecLc_tm : OpenRecLc tm.
@@ -335,7 +349,7 @@ Proof.
 Qed.
 Arguments OpenRecLc_value /.
 
-Class SubstOpen A `{Stale aset A} `{Open value A} `{Subst value A}  `{Lc A} := subst_open :
+Class SubstOpen A `{Stale A} `{Open value A} `{Subst value A}  `{Lc A} := subst_open :
 forall (e: A) (u: value) (w: value) (x:atom) (k: nat),
     lc w -> {x := w} ({k ~> u} e) = ({k ~> {x := w} u} ({x := w} e)).
 
@@ -361,7 +375,7 @@ Proof.
 Qed.
 Arguments SubstOpen_value /.
 
-Class CloseVarRename A `{Stale aset A} `{Close A} `{Subst value A} := close_var_rename :
+Class CloseVarRename A `{Stale A} `{Close A} `{Subst value A} := close_var_rename :
 forall (e: A) (x:atom) (y:atom) (k: nat),
     y # e -> {k <~ x} e = {k <~ y} ({x := vfvar y} e).
 
@@ -396,7 +410,7 @@ Ltac rewrite_by_set_solver2 :=
           | H: context [ _ ->  _ = _ ]  |- _ => erewrite H by (eauto; my_set_solver)
           end; auto.
 
-Class Fact2 A `{Stale aset A} `{Open value A} `{Close A} := fact2 :
+Class Fact2 A `{Stale A} `{Open value A} `{Close A} := fact2 :
 forall (e: A) (x y z: atom) (i j: nat),
     x <> y -> i <> j -> y # e ->
     {i ~> vfvar y} ({j ~> vfvar z} ({j <~ x} e)) = {j ~> vfvar z} ({j <~ x} ({i ~> vfvar y} e)).
@@ -424,10 +438,7 @@ Proof.
 Qed.
 Arguments Fact2_value /.
 
-Ltac ln_simpl :=
-autounfold with class_simpl in *; simpl in *; mydestr; do 3 fold_syntax_class.
-
-Class SubstLc A `{Stale aset A} `{Subst value A} `{Lc A} := subst_lc :
+Class SubstLc A `{Stale A} `{Subst value A} `{Lc A} := subst_lc :
 forall (e: A), lc e -> forall (x:atom) (u: value), lc u -> lc ({x := u} e).
 
 #[global] Instance SubstLc_tm : SubstLc tm.
@@ -470,7 +481,7 @@ Proof.
 Qed.
 Arguments SubstLc_value /.
 
-Class OpenCloseVarAux A `{Stale aset A} `{Open value A} `{Close A} := open_close_var_aux :
+Class OpenCloseVarAux A `{Stale A} `{Open value A} `{Close A} := open_close_var_aux :
 forall (e: A) (x: atom) (k: nat),
     {k ~> (vfvar x)} e = e -> {k ~> (vfvar x)} ({k <~ x} e) = e.
 
@@ -498,7 +509,7 @@ Proof.
 Qed.
 Arguments OpenCloseVarAux_value /.
 
-Class OpenCloseVar A `{Stale aset A} `{Open value A} `{Close A} `{Lc A} := open_close_var :
+Class OpenCloseVar A `{Stale A} `{Open value A} `{Close A} `{Lc A} := open_close_var :
 forall (e: A) (x: atom), lc e -> {0 ~> (vfvar x)} ({0 <~ x} e) = e.
 
 Lemma OpenCloseVar_all
@@ -526,7 +537,7 @@ Arguments OpenCloseVar_value /.
 
 (* The third class of lemmas *)
 
-Class SubstIntro A `{Stale aset A} `{Open value A} `{Subst value A} `{Lc A} := subst_intro :
+Class SubstIntro A `{Stale A} `{Open value A} `{Subst value A} `{Lc A} := subst_intro :
 forall (e: A) (x:atom) (w: value) (k: nat),
     x # e ->
     lc w -> {x := w} ({k ~> (vfvar x)} e) = ({k ~> w} e).
@@ -554,7 +565,7 @@ Arguments SubstIntro_tm /.
 Proof. apply SubstIntro_all; typeclasses eauto. Qed.
 Arguments SubstIntro_value /.
 
-Class SubstOpenVar A `{Stale aset A} `{Open value A} `{Subst value A} `{Lc A} := subst_open_var :
+Class SubstOpenVar A `{Stale A} `{Open value A} `{Subst value A} `{Lc A} := subst_open_var :
 forall x y (u: value) (e: A) (k: nat),
     x <> y -> lc u -> {x := u} ({k ~> (vfvar y)} e) = ({k ~> (vfvar y)} ({x := u} e)).
 
@@ -580,7 +591,7 @@ Arguments SubstOpenVar_tm /.
 Proof. apply SubstOpenVar_all. all: typeclasses eauto. Qed.
 Arguments SubstOpenVar_value /.
 
-Class SubstBody A `{Stale aset A} `{open: Open value A} `{Subst value A} `{lc : Lc A}:= subst_body :
+Class SubstBody A `{Stale A} `{open: Open value A} `{Subst value A} `{lc : Lc A}:= subst_body :
 forall x (u: value) (e: A), body e -> lc_value u -> body ({x := u} e).
 
 Lemma SubstBody_all
@@ -608,7 +619,7 @@ Arguments SubstBody_tm /.
 Proof. apply SubstBody_all; typeclasses eauto. Qed.
 Arguments SubstBody_value /.
 
-Class OpenLc A `{Stale aset A} `{Open value A} `{Lc A} := open_lc :
+Class OpenLc A `{Stale A} `{Open value A} `{Lc A} := open_lc :
 forall (e: A) (u: value), body e -> lc u -> lc ({0 ~> u} e).
 
 Lemma OpenLc_all
@@ -637,7 +648,7 @@ Arguments OpenLc_tm /.
 Proof. apply OpenLc_all with (staleA := stale) (openA := open) (substA := subst) (lcA := lc); typeclasses eauto. Qed.
 Arguments OpenLc_value /.
 
-Class OpenWithFreshIncludeFv A `{Stale aset A} `{Open value A} `{Lc A} := open_with_fresh_include_fv :
+Class OpenWithFreshIncludeFv A `{Stale A} `{Open value A} `{Lc A} := open_with_fresh_include_fv :
 forall (x: atom) (e: A) (k: nat),
     x # e -> ({[x]} ∪ stale e) ⊆ ({[x]} ∪ stale ({k ~> (vfvar x)} e)).
 
@@ -721,7 +732,7 @@ Arguments LcImpliesBody_value /.
     | [|- body _ ] => eexists; auto_exists_L_intros
     end. *)
 
-Class SubstAsCloseOpenAux A `{Stale aset A} `{Open value A} `{Close A} `{Subst value A} := subst_as_close_open_aux :
+Class SubstAsCloseOpenAux A `{Stale A} `{Open value A} `{Close A} `{Subst value A} := subst_as_close_open_aux :
 forall (x: atom) (u: value) (e: A) (k: nat),
     {k ~> u} e = e ->
     {k ~> u} ({k <~ x} e) = {x := u} e.
@@ -750,7 +761,7 @@ Proof.
 Qed.
 Arguments SubstAsCloseOpenAux_value /.
 
-Class SubstAsCloseOpen A `{Stale aset A} `{Open value A} `{Close A} `{Subst value A} `{Lc A} := subst_as_close_open :
+Class SubstAsCloseOpen A `{Stale A} `{Open value A} `{Close A} `{Subst value A} `{Lc A} := subst_as_close_open :
 forall (x: atom) (u: value) (e: A),
     lc e -> {0 ~> u} ({0 <~ x} e) = {x := u} e.
 
@@ -778,7 +789,7 @@ Arguments SubstAsCloseOpen_tm /.
 Proof. apply SubstAsCloseOpen_all; typeclasses eauto. Qed.
 Arguments SubstAsCloseOpen_value /.
 
-Class CloseFreshRec A `{Stale aset A} `{Close A} := close_fresh_rec :
+Class CloseFreshRec A `{Stale A} `{Close A} := close_fresh_rec :
 forall (x: atom) (e: A) (k: nat), x # e -> { k <~ x} e = e.
 
 #[global] Instance CloseFreshRec_tm : CloseFreshRec tm.
@@ -805,7 +816,7 @@ Proof.
 Qed.
 Arguments CloseFreshRec_value /.
 
-Class SubstClose A `{Stale aset A} `{Open value A} `{Close A} `{Subst value A} := subst_close :
+Class SubstClose A `{Stale A} `{Open value A} `{Close A} `{Subst value A} := subst_close :
 ∀ (x y: atom) (u: value), x # u -> x <> y ->
                         forall (e: A) k, {k <~ x} ({y := u } e) = {y := u } ({k <~ x} e).
 
@@ -833,7 +844,7 @@ Proof.
 Qed.
 Arguments SubstClose_value /.
 
-Class SubstCommute A `{Stale aset A} `{Subst value A} := subst_commute :
+Class SubstCommute A `{Stale A} `{Subst value A} := subst_commute :
 forall (x y: atom) (u_x u_y: value) (e: A),
     x <> y -> x # u_y -> y # u_x ->
     {x := u_x } ({y := u_y } e) = {y := u_y } ({x := u_x } e).
@@ -864,7 +875,7 @@ Proof.
 Qed.
 Arguments SubstCommute_value /.
 
-Class SubstShadow A `{Stale aset A} `{Open value A} `{Close A} `{Subst value A} := subst_shadow :
+Class SubstShadow A `{Stale A} `{Open value A} `{Close A} `{Subst value A} := subst_shadow :
 forall (x z: atom) (u: value) (e: A),
     x # e -> {x := u } ({z := (vfvar x) } e) = {z := u } e.
 
@@ -890,7 +901,7 @@ Proof.
 Qed.
 Arguments SubstShadow_value /.
 
-Class SubstSubst A `{Stale aset A} `{Open value A} `{Close A} `{Subst value A} := subst_subst :
+Class SubstSubst A `{Stale A} `{Open value A} `{Close A} `{Subst value A} := subst_subst :
 forall (x : atom) (u_x : value) (y : atom) (u_y: value) (e: A),
     x ≠ y → y # u_x →
     {x := u_x } ({y := u_y } e) = {y := {x := u_x } u_y } ({x := u_x } e).
@@ -919,7 +930,7 @@ Proof.
 Qed.
 Arguments SubstSubst_value /.
 
-Class FvOfSubst A `{Stale aset A} `{Open value A} `{Close A} `{Subst value A} := fv_of_subst :
+Class FvOfSubst A `{Stale A} `{Open value A} `{Close A} `{Subst value A} := fv_of_subst :
 forall x (u: value) (e: A), stale ({x := u } e) ⊆ (stale e ∖ {[x]}) ∪ stale u.
 
 #[global] Instance FvOfSubst_tm: FvOfSubst tm.
@@ -944,7 +955,7 @@ Proof.
 Qed.
 Arguments FvOfSubst_value /.
 
-Class FvOfSubstClosed A `{Stale aset A} `{Subst value A} := fv_of_subst_closed :
+Class FvOfSubstClosed A `{Stale A} `{Subst value A} := fv_of_subst_closed :
 forall x (u: value) (e: A),
     stale u ≡ ∅ ->
     stale ({x := u } e) = (stale e ∖ {[x]}).
@@ -991,7 +1002,7 @@ Qed.
 
 Global Hint Resolve body_tletapp_0: core.
 
-Class OpenSubstSame A `{Stale aset A} `{Open value A} `{Subst value A} := open_subst_same :
+Class OpenSubstSame A `{Stale A} `{Open value A} `{Subst value A} := open_subst_same :
 forall (x: atom) (y: value) (e: A) (k: nat), x # e -> {x := y } ({k ~> (vfvar x)} e) = {k ~> y} e.
 
 #[global] Instance OpenSubstSame_tm: OpenSubstSame tm.
@@ -1039,7 +1050,7 @@ Proof.
     end.
 Qed.
 
-Class CloseRmFv A `{Stale aset A} `{Close A} := close_rm_fv :
+Class CloseRmFv A `{Stale A} `{Close A} := close_rm_fv :
 forall (x: atom) (e: A) (k: nat), x # ({k <~ x} e).
 
 #[global] Instance CloseRmFv_tm: CloseRmFv tm.
@@ -1065,7 +1076,7 @@ Proof.
 Qed.
 Arguments CloseRmFv_value /.
 
-Class CloseThenSubstSame A `{Stale aset A} `{Close A} `{Subst value A} := close_then_subst_same :
+Class CloseThenSubstSame A `{Stale A} `{Close A} `{Subst value A} := close_then_subst_same :
 forall (x: atom) (v_x: value) (e: A), ({x := v_x } (x \\ e)) = (x \\ e).
 
 Lemma CloseThenSubstSame_all
@@ -1089,7 +1100,7 @@ Arguments CloseThenSubstSame_tm /.
 Proof. apply CloseThenSubstSame_all; typeclasses eauto. Qed.
 Arguments CloseThenSubstSame_value /.
 
-Class SubstOpenClosed A `{Stale aset A} `{Open value A} `{Subst value A} `{Lc A} := subst_open_closed :
+Class SubstOpenClosed A `{Stale A} `{Open value A} `{Subst value A} `{Lc A} := subst_open_closed :
 forall (e :A) (x : atom) (u w : value) (k : nat),
     stale u ≡ ∅ ->
     lc w → {x := w } ({k ~> u} e) = {k ~> u} ({x := w } e).
@@ -1117,7 +1128,7 @@ Arguments SubstOpenClosed_tm /.
 Proof. apply SubstOpenClosed_all; typeclasses eauto. Qed.
 Arguments SubstOpenClosed_value /.
 
-Class BodyLcAfterClose A `{Stale aset A} `{Open value A} `{Close A} `{Lc A} := body_lc_after_close :
+Class BodyLcAfterClose A `{Stale A} `{Open value A} `{Close A} `{Lc A} := body_lc_after_close :
 forall (x: atom) (e: A), lc e -> body ({0 <~ x} e).
 
 Lemma BodyLcAfterClose_all
@@ -1146,7 +1157,7 @@ Arguments BodyLcAfterClose_tm /.
 Proof. apply BodyLcAfterClose_all with (staleA := stale) (openA := open) (closeA := close) (substA := subst) (lcA := lc); typeclasses eauto. Qed.
 Arguments BodyLcAfterClose_value /.
 
-Class LcFreshVarImpliesBody A `{Stale aset A} `{Open value A} `{Close A} `{Lc A} := lc_fresh_var_implies_body :
+Class LcFreshVarImpliesBody A `{Stale A} `{Open value A} `{Close A} `{Lc A} := lc_fresh_var_implies_body :
 forall (e: A) (x: atom), x # e -> lc (e ^^ (vfvar x)) -> body e.
 
 Lemma LcFreshVarImpliesBody_all
@@ -1172,7 +1183,7 @@ Arguments LcFreshVarImpliesBody_tm /.
 Proof. apply LcFreshVarImpliesBody_all; typeclasses eauto. Qed.
 Arguments LcFreshVarImpliesBody_value /.
 
-Class OpenNotInEq A `{Stale aset A} `{Open value A} := open_not_in_eq :
+Class OpenNotInEq A `{Stale A} `{Open value A} := open_not_in_eq :
 forall (x: atom) (e: A) (k: nat), x # ({k ~> (vfvar x)} e) -> {k ~> (vfvar x)} e = e.
 
 #[global] Instance OpenNotInEq_tm: OpenNotInEq tm.
@@ -1197,7 +1208,7 @@ Proof.
 Qed.
 Arguments OpenNotInEq_value /.
 
-Class LcSubst A `{Stale aset A} `{Open value A} `{Subst value A} `{Lc A} := lc_subst :
+Class LcSubst A `{Stale A} `{Open value A} `{Subst value A} `{Lc A} := lc_subst :
 forall (x: atom) (u: value) (e: A), lc ({x := u} e) -> lc_value u -> lc e.
 
 #[global] Instance LcSubst_tm : LcSubst tm.
@@ -1212,12 +1223,13 @@ Proof.
   apply (lc_tm_mutual_rec
            (fun (e': value) _ => ∀ e : value, e' = {x := u} (e) → lc e)
            (fun (e': tm) _ => ∀ e : tm, e' = {x := u} (e) → lc e)
-        ); intros;
+        ); intros; fold_syntax_class;
       match goal with
       | H : _ = {_:=_} ?e |- _ => destruct e; ln_simpl; simplify_eq
       end;
   try solve [ lc_solver1; hauto].
-all: lc_solver1; econstructor; eauto;
+all:
+econstructor; eauto; lc_solver1; eauto;
 let x := fresh "x" in
 let acc := collect_stales tt in instantiate (1 := acc); intros x **; simpl;
 repeat specialize_with x;
@@ -1242,7 +1254,7 @@ Proof.
       | H : _ = {_:=_} ?e |- _ => destruct e; ln_simpl; simplify_eq
       end;
   try solve [ lc_solver1; hauto].
-all: lc_solver1; econstructor; eauto;
+all: econstructor; lc_solver1; eauto;
 let x := fresh "x" in
 let acc := collect_stales tt in instantiate (1 := acc); intros x **; simpl;
 repeat specialize_with x;
@@ -1250,7 +1262,7 @@ rewrite <- @subst_open_var with (H := stale) (H2:= lc) in *; eauto; my_set_solve
 Qed.
 Arguments LcSubst_value /.
 
-Class OpenSwap A `{Stale aset A} `{Open value A} := open_swap :
+Class OpenSwap A `{Stale A} `{Open value A} := open_swap :
 forall (t: A) i j (u v: value),
     lc u ->
     lc v ->
@@ -1297,7 +1309,7 @@ Proof.
 Qed.
 Arguments OpenSwap_value /.
 
-Class OpenLcRespect A `{Stale aset A} `{Open value A} `{Lc A} := open_lc_respect :
+Class OpenLcRespect A `{Stale A} `{Open value A} `{Lc A} := open_lc_respect :
 forall (t: A) (u v : value) (k: nat),
     lc ({k ~> u} t) ->
     lc u ->
@@ -1317,7 +1329,7 @@ Proof.
       | H : _ = {_ ~> _} ?t |- _ => destruct t; ln_simpl; simplify_eq
       end;
   try solve [ lc_solver1; hauto].
-all: lc_solver1; econstructor; eauto;
+all: econstructor; lc_solver1; eauto;
 let x := fresh "x" in
 let acc := collect_stales tt in instantiate (1 := acc); intros x **; simpl;
 repeat specialize_with x; fold_syntax_class;
@@ -1338,7 +1350,7 @@ Proof.
       | H : _ = {_ ~> _} ?t |- _ => destruct t; ln_simpl; simplify_eq
       end;
   try solve [ lc_solver1; hauto].
-all: lc_solver1; econstructor; eauto;
+all: econstructor; lc_solver1; eauto;
 let x := fresh "x" in
 let acc := collect_stales tt in instantiate (1 := acc); intros x **; simpl;
 repeat specialize_with x; fold_syntax_class;
@@ -1346,7 +1358,7 @@ rewrite open_swap in *; eauto; lc_solver1.
 Qed.
 Arguments OpenLcRespect_value /.
 
-Class OpenIdemp A `{Stale aset A} `{Open value A} := open_idemp :
+Class OpenIdemp A `{Stale A} `{Open value A} := open_idemp :
 forall (t: A) (u v: value) (k: nat),
     lc v ->
     {k ~> u} ({k ~> v} t) = ({k ~> v} t).

@@ -100,7 +100,7 @@ Fixpoint fv_rty ρ : aset :=
   end.
 
 #[global]
-  Instance rty_stale : @Stale aset rty := fv_rty.
+  Instance rty_stale : Stale rty := fv_rty.
 Arguments rty_stale /.
 
 Fixpoint open_rty (k: nat) (s: value) (ρ: rty) : rty :=
@@ -114,11 +114,6 @@ Fixpoint open_rty (k: nat) (s: value) (ρ: rty) : rty :=
 Instance open_rty_with_value : Open value rty := open_rty.
 Arguments open_rty_with_value /.
 
-#[global]
-Instance open_rty_with_atom : Open atom rty :=
-  fun k (a : atom) (ρ : rty) => open_rty k (vfvar a) ρ.
-Arguments open_rty_with_atom /.
-
 Fixpoint subst_rty (k: atom) (s: value) (ρ: rty) : rty :=
   match ρ with
   | {: b | ϕ} => {: b | subst_qualifier k s ϕ}
@@ -130,11 +125,6 @@ Fixpoint subst_rty (k: atom) (s: value) (ρ: rty) : rty :=
 Instance subst_rty_with_value : Subst value rty := subst_rty.
 Arguments subst_rty_with_value /.
 
-#[global]
-Instance subst_rty_with_atom : Subst atom rty :=
-  fun k (a : atom) (ρ : rty) => subst_rty k (vfvar a) ρ.
-Arguments subst_rty_with_atom /.
-
 (** Local closure *)
 (** NOTE: To alaign with denotation, we assume the function type doesn't appear in transduce. *)
 (** NOTE: all (L: aset) should be the first hypothesis. *)
@@ -142,7 +132,7 @@ Inductive lc_rty : rty -> Prop :=
 | lc_rtyOver: forall b ϕ, body ϕ -> fine_rty {: b | ϕ} -> lc_rty {: b | ϕ}
 | lc_rtyUnder: forall b ϕ, body ϕ -> fine_rty [: b | ϕ] -> lc_rty [: b | ϕ]
 | lc_rtyArr: forall ρ τ (L : aset),
-    (forall x : atom, x ∉ L -> lc_rty (τ ^^ x)) ->
+    (forall x : atom, x ∉ L -> lc_rty (τ ^^ (vfvar x))) ->
     fine_rty (ρ ⇨ τ) -> lc_rty ρ ->
     lc_rty (ρ ⇨ τ).
 
@@ -156,8 +146,6 @@ Lemma lc_rty_fine: forall τ, lc_rty τ -> fine_rty τ.
 Proof.
   induction 1; eauto.
 Qed.
-
-Definition body_rty τ := exists (L: aset), ∀ x : atom, x ∉ L → lc_rty (τ ^^ x).
 
 (** Closed under free variable set *)
 

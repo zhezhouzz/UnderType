@@ -246,7 +246,13 @@ Arguments OpenLcRespect_qualifier /.
 
 Arguments qualifier_and : simpl never.
 
-Class SubstBody2 A `{Stale aset A} `{open: Open value A} `{Subst value A} `{lc : Lc A}:= subst_body2 :
+#[global] Instance SubstOpenVar_qualifier: SubstOpenVar qualifier.
+Proof.
+  apply SubstOpenVar_all. all: typeclasses eauto.
+Qed.
+Arguments SubstOpenVar_qualifier /.
+
+Class SubstBody2 A `{Stale A} `{open: Open value A} `{Subst value A} `{lc : Lc A}:= subst_body2 :
 forall x (u: value) (e: A), body2 e -> lc_value u -> body2 ({x := u} e).
 
 #[global] Instance SubstBody2_qualifier: SubstBody2 qualifier.
@@ -257,12 +263,13 @@ Proof.
   auto_exists_L. intros y1 Hy1 y2 Hy2.
   specialize_with y1.
   specialize_with y2.
-  rewrite <- !subst_open_var by (eauto; my_set_solver).
-  pose subst_lc. eauto.
+  repeat rewrite <- (subst_open_var); eauto.
+  apply subst_lc; eauto.
+  all: my_set_solver.
 Qed.
 Arguments SubstBody2_qualifier /.
 
-Class BodySubst A `{Stale aset A} `{Open value A} `{Subst value A} `{Lc A} := body_subst :
+Class BodySubst A `{Stale A} `{Open value A} `{Subst value A} `{Lc A} := body_subst :
 forall (x: atom) (u: value) (e: A), body ({x := u} e) -> lc_value u -> body e.
 
 #[global] Instance BodySubst_qualifier: BodySubst qualifier.
@@ -277,7 +284,7 @@ Proof.
 Qed.
 Arguments BodySubst_qualifier /.
 
-Class Body2Subst A `{Stale aset A} `{Open value A} `{Subst value A} `{Lc A} := body2_subst:
+Class Body2Subst A `{Stale A} `{Open value A} `{Subst value A} `{Lc A} := body2_subst:
 forall (x: atom) (u: value) (e: A), body2 ({x := u} e) -> lc_value u -> body2 e.
 
 #[global] Instance Body2Subst_qualifier: Body2Subst qualifier.
@@ -295,7 +302,7 @@ Arguments Body2Subst_qualifier /.
 Lemma lc_phi1_and ϕ1 ϕ2:
   body ϕ1 -> body ϕ2 -> body (ϕ1 & ϕ2).
 Proof.
-  intros. unfold body in *. unfold Body_default in *. simp_hyps.
+  intros. unfold body in *. simp_hyps.
   auto_exists_L. intros y1 Hy1.
   specialize_with y1. specialize_with y1.
   setoid_rewrite qualifier_and_open.
@@ -305,7 +312,7 @@ Qed.
 Lemma lc_phi2_and ϕ1 ϕ2:
   body2 ϕ1 -> body2 ϕ2 -> body2 (ϕ1 & ϕ2).
 Proof.
-  intros. unfold body2 in *. unfold Body2_default in *. simp_hyps.
+  intros. unfold body2 in *. simp_hyps.
   auto_exists_L. intros y1 Hy1 y2 Hy2.
   specialize_with y1. specialize_with y2.
   specialize_with y1. specialize_with y2.
@@ -332,7 +339,7 @@ Lemma lc_phi2_body: ∀ n vals prop,
     body2 (@qual n vals prop) ->
     Vector.Forall (fun v => body2 v) vals.
 Proof.
-  unfold body2. unfold Body2_default. intros. subst. sinvert H.
+  unfold body2. intros. subst. sinvert H.
   rewrite Vector.Forall_forall. intros.
   auto_exists_L. intros.
   ospecialize * (H0 x0 _ y). my_set_solver. my_set_solver.
@@ -373,7 +380,7 @@ Proof.
   eapply fact1; eauto.
 Qed.
 
-Class Fact1Twice A `{Stale aset A} `{Open value A} := fact1_twice :
+Class Fact1Twice A `{Stale A} `{Open value A} := fact1_twice :
 forall (u v1 v2: value) (e: A) i j1 j2,
     i <> j1 -> i <> j2 -> j1 <> j2 ->
     {i ~> u} ({j1 ~> v1} ({j2 ~> v2} e)) = {j1 ~> v1} ({j2 ~> v2} e) -> {i ~> u} e = e.
@@ -406,7 +413,7 @@ Arguments Fact1Twice_qualifier /.
 
 
 
-Class OpenRecBody A `{Stale aset A} `{Open value A} `{Lc A} := open_rec_body :
+Class OpenRecBody A `{Stale A} `{Open value A} `{Lc A} := open_rec_body :
 forall (e: A), body e -> forall (k: nat) (v: value), {S k ~> v} e = e.
 
 #[global] Instance OpenRecBody_qualifier: OpenRecBody qualifier.
@@ -426,7 +433,7 @@ Proof.
 Qed.
 Arguments OpenRecBody_qualifier /.
 
-Class OpenRecBody2 A `{Stale aset A} `{Open value A} `{Lc A} := open_rec_body2 :
+Class OpenRecBody2 A `{Stale A} `{Open value A} `{Lc A} := open_rec_body2 :
 forall (e: A), body2 e -> forall (k: nat) (v: value), {S (S k) ~> v} e = e.
 
 (* NOTE: Very very annoying, when qualifier has builtin 1 or 2 arguments. *)
@@ -442,10 +449,11 @@ Proof.
   rewrite Vector.Forall_forall in Hlc.
   ospecialize * Hlc; eauto.
   destruct Hlc.
-  auto_pose_fv y1. auto_pose_fv y2.
+  auto_pose_fv y1.
+  auto_pose_fv y2.
   ospecialize * (H0 y1 _ y2); eauto. my_set_solver. my_set_solver.
   fold_syntax_class.
-  eapply (fact1_twice _ y1 y2 _ _ 0 1); eauto.
+  eapply (fact1_twice _ y2 y1 _ _ 0 1); eauto.
   rewrite open_rec_lc; eauto.
 Qed.
 Arguments OpenRecBody2_qualifier /.

@@ -3,19 +3,9 @@ From stdpp Require Import natmap.
 From stdpp Require Import fin vector.
 From Stdlib Require Classical_Prop.
 From CT.Syntax Require Import Syntax.
-From CT.LocallyNameless Require Import LangLc.
-From CT.LocallyNameless Require Import QualifierLc.
+From CT.LocallyNameless Require Import FineRty LangLc QualifierLc.
 
-Import BaseDef.
-Import Lang.
-Import Primitives.
-Import Qualifier.
-Import MyTactics.
-Import ListCtx.
-Import List.
-Import RefinementType.
-Import LangLc.
-Import QualifierLc.
+Import BaseDef Lang MyTactics Primitives Qualifier ListCtx List RefinementType Syntax LangLc QualifierLc FineRty.
 
 (** * Naming properties of refinement type syntax *)
 
@@ -133,95 +123,86 @@ Proof.
 Qed.
 Arguments SubstOpen_rty /.
 
-(* #[global] Instance SubstOpenVar_rty: SubstOpenVar rty.
-Proof. exact subst_open_var. Qed.
-Arguments SubstOpenVar_rty /. *)
+#[global] Instance SubstOpenVar_rty: SubstOpenVar rty.
+Proof.
+  apply SubstOpenVar_all. all: typeclasses eauto.
+Qed.
+Arguments SubstOpenVar_rty /.
 
 #[global] Instance SubstLc_rty: SubstLc rty.
 Proof.
   unfold SubstLc.
-  induction 1; intros; ln_simpl; eauto;
-  try solve [econstructor; eauto; apply subst_body; eauto].
-  - fold_syntax_class. auto_exists_L.
-    + intros. setoid_rewrite <- (subst_open_var (A := rty)); eauto.
+  induction 1; intros; ln_simpl; eauto.
+  - econstructor; eauto. destruct H as [L H].
+    auto_exists_L. intros. rewrite <- subst_open_var; eauto.
+    apply subst_lc; eauto. apply H.
+    all: my_set_solver.
+  - econstructor; eauto. destruct H as [L H].
+    auto_exists_L. intros. rewrite <- subst_open_var; eauto.
+    apply subst_lc; eauto. apply H.
+    all: my_set_solver.
+  - auto_exists_L; fold_syntax_class; eauto.
+    + intros. rewrite <- subst_open_var; eauto.
       auto_apply; my_set_solver. my_set_solver.
-    + simpl.  in *. intuition. fine_rty_simp_aux. fine_rty_solver.
-  pose (subst_open_var (A := rty)) as zz.
-  setoid_rewrite <- zz.
-  
-  eauto.
-  rewrite <- (subst_open_var (A := rty)). eauto.
-
+    + simpl in *. fine_rty_solver.
 Qed.
 Arguments SubstLc_rty /.
 
-Lemma subst_lc_rty : forall x (u: value) (τ: rty),
-    lc_rty τ -> lc u -> lc_rty ({x := u} τ).
+#[global] Instance SubstBody_rty: SubstBody rty.
 Proof.
-  pose subst_lc_phi1.
-  all: induction 1; intros; simpl in *.
-  - econstructor; simpl; eauto.
-  - auto_exists_L.
-  - auto_exists_L; intros. rewrite <- subst_open_var_rty; eauto.
-    auto_apply; eauto. my_set_solver. my_set_solver.
-    simpl. intuition. fine_rty_simp_aux. fine_rty_solver.
+  apply SubstBody_all. all: typeclasses eauto.
 Qed.
 
-Lemma fv_of_subst_rty_closed:
-  forall x (u : value) (τ: rty),
-    closed_value u ->
-    rty_fv ({x := u } τ) = (rty_fv τ ∖ {[x]}).
+#[global] Instance FvOfSubstClosed_rty: FvOfSubstClosed rty.
 Proof.
-  induction τ; simpl; intros; eauto using fv_of_subst_qualifier_closed;
-  try (rewrite !fv_of_subst_td_closed by eauto); my_set_solver.
+  unfold FvOfSubstClosed.
+  induction e; ln_simpl; intros; try solve [rewrite fv_of_subst_closed; eauto].
+  - my_set_solver.
 Qed.
+Arguments FvOfSubstClosed_rty /.
 
-Lemma open_not_in_eq_rty (x : atom) (τ : rty) k :
-  x # {k ~> x} τ ->
-  forall e, τ = {k ~> e} τ.
+#[global] Instance OpenNotInEq_rty: OpenNotInEq rty.
 Proof.
-  pose open_not_in_eq_qualifier.
-  generalize k; induction τ; intros; simpl in *; f_equal; eauto;
+  unfold OpenNotInEq.
+  induction e; intros; ln_simpl; f_equal; eauto;
     try (auto_apply; my_set_solver).
+  all: apply open_not_in_eq; eauto.
 Qed.
+Arguments OpenNotInEq_rty /.
 
-Lemma subst_intro_rty: forall (ρ: rty) (x:atom) (w: value) (k: nat),
-    x # ρ ->
-    lc w -> {x := w} ({k ~> x} ρ) = ({k ~> w} ρ).
+#[global] Instance SubstIntro_rty: SubstIntro rty.
 Proof.
-  intros.
-  specialize (subst_open_rty ρ x x w k) as J.
-  simpl in J. rewrite decide_True in J; auto.
-  rewrite J; auto. rewrite subst_fresh_rty; auto.
+    apply SubstIntro_all; typeclasses eauto.
 Qed.
+Arguments SubstIntro_rty /.
 
-
-Lemma lc_subst_rty: forall x (u: value) (τ: rty), lc_rty ({x := u} τ) -> lc u -> lc_rty τ.
+#[global] Instance LcSubst_rty: LcSubst rty.
 Proof.
-  pose lc_subst_phi1.
-  pose lc_subst_phi2.
-  pose lc_rty_fine.
-  intros.
-  remember (({x:=u}) τ).
+    unfold LcSubst.
+  intros x u τ Hlc Hu.
+  remember ({x:=u} τ).
   generalize dependent τ.
-  induction H.
-  - intros τ **; destruct τ; inversion Heqr; simpl in *; subst; econstructor; eauto.
+  induction Hlc.
+  - intros τ **; destruct τ; inversion Heqr; simpl in *; subst; econstructor; eauto. eapply body_subst; eauto.
+  - intros τ1 **; destruct τ1; inversion Heqr; simpl; subst.
+    auto_exists_L; eapply body_subst; eauto.
   - intros τ1 **; destruct τ1; inversion Heqr; simpl; subst.
     auto_exists_L.
-  - intros τ1 **; destruct τ1; inversion Heqr; simpl; subst.
-    auto_exists_L.
-    intros. repeat specialize_with x0.
-    apply H1.
-    rewrite <- subst_open_var_rty; eauto. my_set_solver. fine_rty_solver.
+    + intros y Hy. repeat specialize_with y.
+     apply H0.
+     fold_syntax_class. rewrite subst_open_var; eauto. set_solver.
+    + fold_syntax_class. fine_rty_solver. 
+    + hauto.
 Qed.
+Arguments LcSubst_rty /.
 
-Lemma open_rty_idemp: forall u (v: value)  (τ: rty) (k: nat),
-    lc v ->
-    {k ~> u} ({k ~> v} τ) = {k ~> v} τ.
+#[global] Instance OpenIdemp_rty: OpenIdemp rty.
 Proof.
-  pose open_qualifier_idemp.
-  induction τ; intros; simpl; f_equal; eauto.
+  unfold OpenIdemp.
+  induction t; intros; ln_simpl; f_equal; eauto.
+  all: rewrite open_idemp; eauto.
 Qed.
+Arguments OpenIdemp_rty /.
 
 Lemma closed_rty_subseteq_proper s1 s2 ρ :
   closed_rty s1 ρ ->
@@ -232,34 +213,30 @@ Proof.
   my_set_solver.
 Qed.
 
-Lemma fact1_rty: forall (u v: value) (A: rty) i j,
-    i <> j -> {i ~> u} ({j ~> v} A) = {j ~> v} A -> {i ~> u} A = A.
+#[global] Instance Fact1_rty: Fact1 rty.
 Proof.
-  pose fact1_value.
-  pose fact1_qualifier.
-  intros u v. induction A; simpl; intros; eauto; f_equal; simp_hyps; eauto.
+  unfold Fact1.
+  intros u v. induction e; ln_simpl; intros; eauto; f_equal; simp_hyps; eauto.
+  all: apply fact1 with (j := S j) (v := v); eauto.
 Qed.
+Arguments Fact1_rty /.
 
-Lemma open_rec_lc_rty: ∀ (u : value) τ (k : nat), lc_rty τ -> {k ~> u} τ = τ.
+#[global] Instance OpenRecLc_rty: OpenRecLc rty.
 Proof.
-  pose open_rec_lc_phi1.
+  unfold OpenRecLc.
   intros. generalize dependent k.
-  induction H; simpl; intros; auto; f_equal; eauto;
-    try (rewrite open_rec_lc_value; eauto).
-  - auto_pose_fv x. apply fact1_rty with (j := 0) (v := x); eauto.
+  induction H; ln_simpl; intros; auto; f_equal; eauto;
+  try (apply open_rec_body; eauto).
+  - auto_pose_fv x. apply fact1 with (j := 0) (v := x); eauto.
     rewrite H0; eauto. my_set_solver.
 Qed.
+Arguments OpenRecLc_rty /.
 
-Lemma body_rty_open_lc: forall (v: value) τ,
-    lc v -> (body_rty τ) -> lc_rty (τ ^r^ v).
+#[global] Instance OpenLc: OpenLc rty.
 Proof.
-  unfold body_rty. intros. simp_hyps.
-  auto_pose_fv x.
-  erewrite <- open_subst_same_rty. instantiate (1:= x).
-  apply subst_lc_rty; eauto.
-  apply H0.
-  all: my_set_solver.
+  apply OpenLc_all with (substA := subst_rty). all: typeclasses eauto.
 Qed.
+Arguments OpenLc /.
 
 Lemma flip_rty_open τ k v: {k ~> v} (flip_rty τ) = flip_rty ({k ~> v} τ).
 Proof.

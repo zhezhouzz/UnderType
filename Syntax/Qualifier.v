@@ -98,7 +98,7 @@ Definition fv_qualifier ϕ : aset :=
   end.
 
 #[global]
-Instance qualifier_stale : @Stale aset qualifier := fv_qualifier.
+Instance qualifier_stale : Stale qualifier := fv_qualifier.
 Arguments qualifier_stale /.
 
 Definition open_qualifier (k: nat) (s: value) (ϕ: qualifier) : qualifier :=

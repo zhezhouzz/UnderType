@@ -485,7 +485,8 @@ Ltac auto_exists_L :=
 Ltac auto_pose_fv a :=
   let acc := collect_stales tt in
   pose (fv_of_set acc) as a;
-  assert (a ∉ acc) by (apply fv_of_set_fresh; auto).
+  assert (a ∉ acc) by (apply fv_of_set_fresh; auto);
+  clearbody a.
 
 (* list of atoms *)
 
@@ -538,9 +539,7 @@ Ltac specialize_with x :=
   end.
 
 Ltac pose_fresh_fv name :=
-  let accL := collect_stales tt in
-  pose (fv_of_set accL) as name;
-  pose (fv_of_set_fresh accL).
+  auto_pose_fv name.
 
 Ltac f_equal_hyp :=
   repeat match goal with
@@ -559,3 +558,29 @@ Ltac f_equal_hyp :=
          | [ H: ?a _ _ _ = ?a _ _ _ |- _ ] =>
              inversion H; subst; clear H; auto
          end.
+
+(* When constructor contains an aset, we automatically collect the stales and instantiate the aset. *)
+Ltac econstructor_L :=
+  unshelve econstructor;
+  try lazymatch goal with
+  | |- aset =>
+      let acc := collect_stales tt in exact acc
+  | |- ?G =>
+      try lazymatch type of G with
+      | Prop => fail 1               (* This is the main proof goal: do not touch it *)
+      | _ => shelve        (* This is some other evar goal: shelve it for now *)
+      end
+  end; eauto.
+
+Ltac auto_specialization :=
+  try lazymatch goal with
+  | |- forall y, y ∉ _ -> _ =>
+    let y := fresh "y" in
+    let Hy := fresh "Hy" in
+    intros y Hy;
+    specialize_with y
+  end;
+  eauto.
+
+Ltac econstructor_L_specialized :=
+  econstructor_L; auto_specialization.

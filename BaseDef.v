@@ -22,10 +22,10 @@ Qed.
 
 (** This Stale class gathers all free variables in type context, values, terms,
   etc. *)
-Class Stale {D} A := stale : A -> D.
+Class Stale A := stale : A -> aset.
 
 #[global]
-Instance atom_stale : @Stale aset atom := singleton.
+Instance atom_stale : Stale atom := singleton.
 Arguments atom_stale /.
 #[global]
 Instance aset_stale : Stale aset := id.
@@ -55,4 +55,4 @@ Class Typing G E T := has_type : G -> E -> T -> Prop.
 
 Notation "Γ '⊢' e '⋮' T" := (has_type Γ e T) (at level 20, e constr, T constr, Γ constr).
 
-Hint Unfold open close subst stale : class_simpl.
+Hint Unfold open close subst stale lc has_type: class_simpl.

@@ -1,8 +1,28 @@
 From CT Require Import BaseDef.
-From CT.Syntax Require Export Lang Qualifier RefinementType.
+From CT.Syntax Require Export Lang Qualifier RefinementType BasicTyping.
 
 Ltac fold_syntax_class :=
-  (* Direct syntax functions *)
+  (* NOTE:
+   Using [change ... in *] with shared evars (the [?Γ ?e ?T] placeholders)
+   often fails when there are multiple [value_has_type]/[tm_has_type]
+   occurrences with different parameters in the context/goal.
+   We instead rewrite each occurrence one-by-one by first pattern-matching to
+   bind fresh [Γ e T] for that specific occurrence. *)
+  repeat (
+    first
+      [ progress match goal with
+        | H : value_has_type ?Γ ?v ?T |- _ =>
+            change (value_has_type Γ v T) with (Γ ⊢ v ⋮ T) in H
+        | |- context [value_has_type ?Γ ?v ?T] =>
+            change (value_has_type Γ v T) with (Γ ⊢ v ⋮ T)
+        end
+      | progress match goal with
+        | H : tm_has_type ?Γ ?e ?T |- _ =>
+            change (tm_has_type Γ e T) with (Γ ⊢ e ⋮ T) in H
+        | |- context [tm_has_type ?Γ ?e ?T] =>
+            change (tm_has_type Γ e T) with (Γ ⊢ e ⋮ T)
+        end
+      ]);
   change (subst_tm ?x ?w ?e) with ({x := w} e) in *;
   change (subst_value ?x ?w ?v) with ({x := w} v) in *;
   change (subst_qualifier ?x ?w ?q) with ({x := w} q) in *;
@@ -33,3 +53,6 @@ Ltac fold_syntax_class :=
   change (open_rty_with_value ?k ?v ?r) with ({k ~> v} r) in *;
   change (close_value_instance ?x ?k ?e) with ({k <~ x} e) in *;
   change (close_tm_instance ?x ?k ?e) with ({k <~ x} e) in *.
+
+Ltac ln_simpl :=
+  autounfold with class_simpl in *; simpl in *; MyTactics.mydestr; do 3 fold_syntax_class.
