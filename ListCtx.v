@@ -185,14 +185,10 @@ Ltac listctx_set_simpl_aux :=
         rewrite ok_post_destruct in H; destruct H
     | [H: context [ctxdom (_ ++ _)] |- _ ] =>
         rewrite ctxdom_app_union in H; simpl in H
-    (* | [H: context [ctxdom (_ ++ [(_, _)])] |- _ ] =>
-        rewrite ctxdom_app_union in H; simpl in H *)
+    | [H: context [stale (_ ++ _)] |- _ ] =>
+        rewrite ctxdom_app_union in H; simpl in H
     | [|- context [ctxdom (_ ++ _)] ] =>
         rewrite ctxdom_app_union; simpl
-    (* | [|- context [ctxdom (_ ++ [(_, _)])]] =>
-        rewrite ctxdom_app_union; simpl *)
-    (* | [|- context [ctxdom (_ ++ _)]] =>
-        rewrite ctxdom_app_union; simpl *)
     end.
 
 Ltac listctx_set_simpl' := 

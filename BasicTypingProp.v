@@ -72,13 +72,13 @@ Proof.
 Qed.
 Arguments FvSubsetGamma_value /.
 
-Lemma basic_typing_closed_tm: forall e T, ∅ ⊢ e ⋮ T -> stale e ≡ ∅.
+Lemma basic_typing_closed_tm: forall e T, ∅ ⊢ e ⋮ T -> stale e = ∅.
 Proof.
   intros.
   apply fv_subset_gamma in H. my_set_solver.
 Qed.
 
-Lemma basic_typing_closed_value: forall v T, ∅ ⊢ v ⋮ T -> stale v ≡ ∅.
+Lemma basic_typing_closed_value: forall v T, ∅ ⊢ v ⋮ T -> stale v = ∅.
 Proof.
   intros.
   apply fv_subset_gamma in H. my_set_solver.
@@ -427,7 +427,7 @@ Ltac basic_typing_solver :=
 fold_typing_class;
 repeat
  (match goal with
-| [H: ?g ⊢ (treturn ?v) ⋮ ?t |- ?g ⊢ ?v ⋮ ?t ] => sinvert H; eauto
+| [H: ?g ⊢ (treturn ?v) ⋮ ?t |- _ ⊢ ?v ⋮ _ ] => sinvert H; eauto
 | [ H: ?g ⊢ ?e ⋮ ?T, H': ?g ⊢ ?e ⋮ ?T |- _ ] => clear H'
 | [ H: ?g ⊢ ?e ⋮ ?T, H': ?g ⊢ ?e ⋮ ?T |- _ ] => clear H'
 | [ H: ?g ⊢ ?e ⋮ ?T, H': ?g ⊢ ?e ⋮ ?T' |- _ ] =>

@@ -1,5 +1,9 @@
-From CT Require Import BaseDef.
-From CT.Syntax Require Export Lang Qualifier RefinementType BasicTyping.
+From stdpp Require Import stringmap.
+From CT Require Import BaseDef ListCtx .
+From CT.Syntax Require Export Lang Qualifier RefinementType BasicTyping Instantiation.
+
+Hint Unfold listctx_stale: class_simpl.
+Hint Unfold env_stale: class_simpl.
 
 Ltac fold_syntax_class :=
   (* NOTE:
@@ -37,6 +41,8 @@ Ltac fold_syntax_class :=
   change (fv_tm ?e) with (stale e) in *;
   change (fv_qualifier ?q) with (stale q) in *;
   change (fv_rty ?r) with (stale r) in *;
+  change (ctxdom ?Γ) with (stale Γ) in *;
+  change (dom ?Γ) with (stale Γ) in *;
   change (lc_tm ?e) with (lc e) in *;
   change (lc_value ?v) with (lc v) in *;
   change (lc_qualifier ?q) with (lc q) in *;
@@ -55,4 +61,8 @@ Ltac fold_syntax_class :=
   change (close_tm_instance ?x ?k ?e) with ({k <~ x} e) in *.
 
 Ltac ln_simpl :=
-  autounfold with class_simpl in *; simpl in *; MyTactics.mydestr; do 3 fold_syntax_class.
+  autounfold with class_simpl in *; simpl in *; MyTactics.mydestr;
+  MyTactics.my_set_simpl;
+  listctx_set_simpl;
+  simplify_map_eq;
+  do 3 fold_syntax_class.

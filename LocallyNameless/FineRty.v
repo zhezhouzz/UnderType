@@ -74,7 +74,7 @@ Proof.
     + destruct τ1; sinvert HH; eauto; econstructor; rewrite <- IHn; eauto; simpl in *; lia.
   - destruct τ.
     + sinvert HH; eauto.
-    + ln_simpl. eauto.
+    + ln_simpl; eauto.
     + destruct τ1; sinvert HH; eauto; simpl; econstructor; try solve [rewrite IHn; eauto; ln_simpl; lia].
       * rewrite <- IHn in H2; eauto; simpl in *; lia.
 Qed.
@@ -97,7 +97,7 @@ Proof.
     + destruct τ1; sinvert HH; eauto; econstructor; rewrite <- IHn; eauto; simpl in *; lia.
   - destruct τ.
     + sinvert HH; eauto.
-    + ln_simpl. eauto.
+    + ln_simpl; eauto.
     + destruct τ1; sinvert HH; eauto; simpl; econstructor; try solve [rewrite IHn; eauto; simpl in *; lia].
       * rewrite <- IHn in H2; eauto; simpl in *; lia.
 Qed.
@@ -183,11 +183,11 @@ Proof.
   split; intros; sinvert H; econstructor; eauto.
 Qed.
 
-Lemma closed_rty_base_flip: forall L b ϕ, closed_rty L {:b|ϕ} <-> closed_rty L [:b|ϕ].
+(* Lemma closed_rty_base_flip: forall L b ϕ, closed_rty L {:b|ϕ} <-> closed_rty L [:b|ϕ].
 Proof.
   split; intros; sinvert H; econstructor; eauto;
   rewrite lc_base_flip in *; eauto.
-Qed.
+Qed. *)
 
 Lemma lc_rty_arr: forall ρ τ, lc (ρ ⇨ τ) <-> fine_rty (ρ ⇨ τ) /\ lc ρ /\ body τ.
 Proof.
@@ -196,7 +196,7 @@ Proof.
   - unfold body in H1. simp_hyps. auto_exists_L; eauto.
 Qed.
 
-Lemma closed_rty_arr:
+(* Lemma closed_rty_arr:
   ∀ (L : aset) (ρ τ : rty),
     closed_rty L (ρ⇨τ) ↔ (fine_rty (ρ⇨τ)) /\ closed_rty L ρ ∧ body τ /\ (stale τ ⊆ L).
 Proof.
@@ -207,7 +207,7 @@ Proof.
   - simp_hyps. sinvert H1. econstructor; eauto.
     + rewrite lc_rty_arr. intuition.
     + my_set_solver.
-Qed.
+Qed. *)
 
 Ltac fine_rty_simp := simpl in *; repeat fine_rty_simp_aux.
 

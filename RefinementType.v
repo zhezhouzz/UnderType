@@ -136,7 +136,7 @@ Inductive lc_rty : rty -> Prop :=
     fine_rty (ρ ⇨ τ) -> lc_rty ρ ->
     lc_rty (ρ ⇨ τ).
 
-Lemma lc_rty_fine: forall τ, lc_rty τ -> fine_rty τ.
+Lemma lc_rty_fine: forall τ, lc τ -> fine_rty τ.
 Proof.
   induction 1; eauto.
 Qed.
@@ -146,7 +146,7 @@ Definition body_rty τ := exists (L: aset), ∀ x : atom, x ∉ L → lc_rty (τ
 (** Closed under free variable set *)
 
 Inductive closed_rty (d : aset) (ρ: rty): Prop :=
-| closed_rty_: lc_rty ρ -> rty_fv ρ ⊆ d -> closed_rty d ρ.
+| closed_rty_: lc ρ -> stale ρ ⊆ d -> closed_rty d ρ.
 
 Lemma closed_rty_fine: forall d τ, closed_rty d τ -> fine_rty τ.
 Proof.

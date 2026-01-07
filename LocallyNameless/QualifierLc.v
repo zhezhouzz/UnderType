@@ -110,9 +110,9 @@ Proof.
 Qed.
 
 Lemma denote_qualifier_and q1 q2 :
-  denote_qualifier (q1 & q2) <-> denote_qualifier q1 /\ denote_qualifier q2.
+  denote (q1 & q2) <-> denote q1 /\ denote q2.
 Proof.
-  destruct q1, q2. simpl.
+  destruct q1, q2. ln_simpl.
   rewrite denote_vals_app.
   case_split; try qauto.
   case_split; try qauto.
@@ -457,3 +457,8 @@ Proof.
   rewrite open_rec_lc; eauto.
 Qed.
 Arguments OpenRecBody2_qualifier /.
+
+#[global] Instance LcImpliesBody_qualifier: LcImpliesBody qualifier.
+Proof.
+  eapply LcImpliesBody_all. all: typeclasses eauto.
+Qed.

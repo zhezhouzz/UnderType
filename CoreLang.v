@@ -167,8 +167,8 @@ with fv_tm (e : tm): aset :=
        | tmatchb v e1 e2 => (fv_value v) ∪ (fv_tm e1) ∪ (fv_tm e2)
        end.
 
-Definition closed_value (v: value) := fv_value v ≡ ∅.
-Definition closed_tm (e: tm) := fv_tm e ≡ ∅.
+Definition closed_value (v: value) := fv_value v = ∅.
+Definition closed_tm (e: tm) := fv_tm e = ∅.
 
 Definition body (e: tm) := exists (L: aset), forall (x: atom), x ∉ L -> lc (e ^t^ x).
 

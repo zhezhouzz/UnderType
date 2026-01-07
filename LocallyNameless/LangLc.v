@@ -828,7 +828,7 @@ Proof.
            (fun (e: tm) => forall (k: nat), {k <~ x} ({y := u } e) = {y := u } ({k <~ x} e))
         ); simpl; intros; auto; ln_simpl; rewrite_by_set_solver2; auto;
   try (ln_simpl; hauto).
-  - ln_simpl; auto. rewrite close_fresh_rec; auto. hauto.
+  - ln_simpl; auto. rewrite close_fresh_rec; auto.
 Qed.
 Arguments SubstClose_tm /.
 
@@ -840,7 +840,7 @@ Proof.
            (fun (e: tm) => forall (k: nat), {k <~ x} ({y := u } e) = {y := u } ({k <~ x} e))
         ); simpl; intros; auto; ln_simpl; rewrite_by_set_solver2; auto;
   try (ln_simpl; hauto).
-  - ln_simpl; auto. rewrite close_fresh_rec; auto. hauto.
+  - ln_simpl; auto. rewrite close_fresh_rec; auto.
 Qed.
 Arguments SubstClose_value /.
 
@@ -930,7 +930,7 @@ Proof.
 Qed.
 Arguments SubstSubst_value /.
 
-Class FvOfSubst A `{Stale A} `{Open value A} `{Close A} `{Subst value A} := fv_of_subst :
+Class FvOfSubst A `{Stale A} `{Subst value A} := fv_of_subst :
 forall x (u: value) (e: A), stale ({x := u } e) ⊆ (stale e ∖ {[x]}) ∪ stale u.
 
 #[global] Instance FvOfSubst_tm: FvOfSubst tm.
@@ -957,7 +957,7 @@ Arguments FvOfSubst_value /.
 
 Class FvOfSubstClosed A `{Stale A} `{Subst value A} := fv_of_subst_closed :
 forall x (u: value) (e: A),
-    stale u ≡ ∅ ->
+    stale u = ∅ ->
     stale ({x := u } e) = (stale e ∖ {[x]}).
 
 #[global] Instance FvOfSubstClosed_tm: FvOfSubstClosed tm.
@@ -966,9 +966,9 @@ Proof.
   intros x u.
   apply (tm_mutual_rec
            (fun (e: value) =>
-              fv_value u ≡ ∅ -> fv_value ({x := u } e) = fv_value e ∖ {[x]})
+              fv_value u = ∅ -> fv_value ({x := u } e) = fv_value e ∖ {[x]})
            (fun (e: tm) =>
-              fv_value u ≡ ∅ -> fv_tm ({x := u } e) = fv_tm e ∖ {[x]})
+              fv_value u = ∅ -> fv_tm ({x := u } e) = fv_tm e ∖ {[x]})
         ); simpl; intros; auto; repeat ln_simpl; my_set_solver.
 Qed.
 Arguments FvOfSubstClosed_tm /.
@@ -979,9 +979,9 @@ Proof.
   intros x u.
   apply (value_mutual_rec
            (fun (e: value) =>
-              fv_value u ≡ ∅ -> fv_value ({x := u } e) = fv_value e ∖ {[x]})
+              fv_value u = ∅ -> fv_value ({x := u } e) = fv_value e ∖ {[x]})
            (fun (e: tm) =>
-              fv_value u ≡ ∅ -> fv_tm ({x := u } e) = fv_tm e ∖ {[x]})
+              fv_value u = ∅ -> fv_tm ({x := u } e) = fv_tm e ∖ {[x]})
         ); simpl; intros; auto; repeat ln_simpl; my_set_solver.
 Qed.
 Arguments FvOfSubstClosed_value /.
@@ -1102,7 +1102,7 @@ Arguments CloseThenSubstSame_value /.
 
 Class SubstOpenClosed A `{Stale A} `{Open value A} `{Subst value A} `{Lc A} := subst_open_closed :
 forall (e :A) (x : atom) (u w : value) (k : nat),
-    stale u ≡ ∅ ->
+    stale u = ∅ ->
     lc w → {x := w } ({k ~> u} e) = {k ~> u} ({x := w } e).
 
 Lemma SubstOpenClosed_all
@@ -1208,7 +1208,7 @@ Proof.
 Qed.
 Arguments OpenNotInEq_value /.
 
-Class LcSubst A `{Stale A} `{Open value A} `{Subst value A} `{Lc A} := lc_subst :
+Class LcSubst A `{Stale A} `{Subst value A} `{Lc A} := lc_subst :
 forall (x: atom) (u: value) (e: A), lc ({x := u} e) -> lc_value u -> lc e.
 
 #[global] Instance LcSubst_tm : LcSubst tm.

@@ -44,19 +44,6 @@ Ltac closed_simp :=
 (*       apply closed_rty_fine in H; simpl in H; intuition *)
 (*   end. *)
 
-(** Convert an event operator to a value:
-  [op] is [fun x => leteffop y = op x in y] *)
-Definition value_of_op op : value :=
-  vlam TNat (tleteffop op (vbvar 0) (vbvar 0)).
-
-(** Well-formed built-in operator typing context (Definition 4.7) *)
-(* We simply treat the event operator as a value. This is equivalent to the
-definition in the paper (if we expand the denotation of this value). *)
-Definition well_formed_builtin_typing :=
-  forall op ρ,
-    builtin_typing_relation op ρ ->
-    ⟦ ρ ⟧ (value_of_op op).
-
 Lemma msubst_value_of_op Γv op :
   m{Γv}v (value_of_op op) = value_of_op op.
 Proof.

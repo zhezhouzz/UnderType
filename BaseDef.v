@@ -12,6 +12,16 @@ Definition atom_dec: ∀ s1 s2 : atom, {s1 = s2} + {s1 ≠ s2} := string_dec.
 Definition atom_eqb: atom → atom → bool := String.eqb.
 Definition atom_eqb_spec (s1 s2 : atom): reflect (s1 = s2) (atom_eqb s1 s2) := String.eqb_spec s1 s2.
 
+From stdpp Require Import gmap.
+Definition restrict_keys {V} (s : aset) (m : amap V) : amap V :=
+  filter (λ '(k, _), (k ∈ s)) m.
+
+Definition restrict_keys_compl {V} (s : aset) (m : amap V) : amap V :=
+  filter (λ '(k, _), (k ∉ s)) m.
+
+Notation " '[D' s ']' " := (restrict_keys s) (at level 20, format "[D s ]", s constr).
+Notation " '[D~' s ']' " := (restrict_keys_compl s) (at level 20, format "[D~ s ]", s constr).
+
 (** Locally Nameless Functions: *)
 
 Definition fv_of_set (s: aset): atom := fresh_string_of_set "x" s.
@@ -55,4 +65,8 @@ Class Typing G E T := has_type : G -> E -> T -> Prop.
 
 Notation "Γ '⊢' e '⋮' T" := (has_type Γ e T) (at level 20, e constr, T constr, Γ constr).
 
-Hint Unfold open close subst stale lc has_type: class_simpl.
+Class Denotation (A: Type) (B: Type) := denote: A -> B.
+
+Notation "'⟦' τ '⟧' " := (denote τ) (at level 20, format "⟦ τ ⟧", τ constr).
+
+Hint Unfold open close subst stale lc has_type denote: class_simpl.

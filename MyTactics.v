@@ -79,6 +79,14 @@ Tactic Notation "goal_contains" open_constr(pat) :=
   | |- ?T => contains T pat
   end.
 
+(** Intros until the first variable of type [T]. *)
+Ltac intros_until T :=
+  match goal with
+  | [ |- forall (x : ?A), _ ] =>
+      tryif unify A T then idtac else (let H := fresh x in intro H; intros_until T)
+  | _ => idtac
+  end.
+
 Ltac higher_order_reflexivity :=
   match goal with
   | |- (?f ?a) = ?b =>
@@ -448,16 +456,21 @@ Ltac mmy_set_solver2 :=
       do 2 rewrite Htmp; try clear Htmp; exact H
   end.
 
-Ltac my_set_solver :=
+Ltac my_set_simpl_aux :=
   match goal with
+  | [ |- _ !! _ = None ] => rewrite <- not_elem_of_dom
   | [H: context [∅ ∪ ?d] |- _ ] =>
-      assert (∅ ∪ d = d) as Htmp by fast_set_solver;
-      rewrite Htmp in H; try clear Htmp; auto; try fast_set_solver
+      setoid_rewrite setunion_empty_left in H
   | [ |- context [∅ ∪ ?d] ] =>
-      assert (∅ ∪ d = d) as Htmp by fast_set_solver;
-      rewrite Htmp; try clear Htmp; auto; try fast_set_solver
-  end ||
-    mmy_set_solver2 || fast_set_solver!! || set_solver.
+      setoid_rewrite setunion_empty_left
+  end.
+
+Ltac my_set_simpl :=
+  repeat my_set_simpl_aux.
+
+Ltac my_set_solver :=
+my_set_simpl; eauto;
+    (mmy_set_solver2 || fast_set_solver!! || set_solver).
 
 (* Locally Nameless Tactics *)
 
@@ -584,3 +597,8 @@ Ltac auto_specialization :=
 
 Ltac econstructor_L_specialized :=
   econstructor_L; auto_specialization.
+
+Ltac cut_premise H :=
+  lazymatch type of H with
+  | ?A -> _ => cut A
+  end.

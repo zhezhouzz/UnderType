@@ -1,7 +1,5 @@
 From stdpp Require Import mapset.
-From CT Require Import Syntax.
-
-Import BaseDef MyTactics Primitives Lang.
+From CT Require Import BaseDef MyTactics Primitives Lang.
 
 (** This file defines valuation environment, i.e., substitution (σ), and
   multi-substitution operation. *)

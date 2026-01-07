@@ -42,16 +42,28 @@ Proof.
     by rewrite map_union_assoc.
 Qed.
 
-Lemma ctx_erase_dom Γ :
-  dom ⌊Γ⌋* ≡ ctxdom Γ.
+Lemma ctx_erase_dom' Γ :
+  stale ⌊Γ⌋* ≡ stale Γ.
 Proof.
-  induction Γ; simpl.
-  - cbn. apply dom_empty.
-  - destruct a. cbn in *.
-    rewrite insert_empty.
-    setoid_rewrite dom_union.
-    rewrite dom_singleton.
-    f_equiv. eauto.
+  induction Γ; ln_simpl; my_set_solver.
+Qed.
+
+Lemma ctx_erase_dom Γ :
+  stale ⌊Γ⌋* = stale Γ.
+Proof.
+  pose ctx_erase_dom'. my_set_solver.
+Qed.
+
+Lemma ctx_erase_cons Γ x ρ :
+  x # Γ ->
+  ⌊(x, ρ) :: Γ⌋* = <[x:=⌊ρ⌋]> ⌊Γ⌋*.
+Proof.
+  intros H.
+  assert ((x, ρ) :: Γ = [(x, ρ)] ++ Γ) as HT by listctx_set_simpl.
+  rewrite HT.
+  rewrite ctx_erase_app.
+  cbn. simplify_map_eq. rewrite map_union_empty. rewrite insert_empty.
+  rewrite <- insert_union_singleton_l. auto.
 Qed.
 
 Lemma ctx_erase_app_r Γ x ρ :
@@ -62,7 +74,7 @@ Proof.
   rewrite ctx_erase_app.
   cbn. rewrite map_union_empty. rewrite insert_empty.
   rewrite <- insert_union_singleton_r. auto.
-  ln_simpl. rewrite <- ctx_erase_dom in H.
+  rewrite <- ctx_erase_dom in H.
   by apply not_elem_of_dom.
 Qed.
 
@@ -204,14 +216,14 @@ Proof.
 Qed.
 Arguments OpenIdemp_rty /.
 
-Lemma closed_rty_subseteq_proper s1 s2 ρ :
+(* Lemma closed_rty_subseteq_proper s1 s2 ρ :
   closed_rty s1 ρ ->
   s1 ⊆ s2 ->
   closed_rty s2 ρ.
 Proof.
   intros. sinvert H. split. eauto.
   my_set_solver.
-Qed.
+Qed. *)
 
 #[global] Instance Fact1_rty: Fact1 rty.
 Proof.

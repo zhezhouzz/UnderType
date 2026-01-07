@@ -56,7 +56,7 @@ Proof.
 Qed.
 
 Lemma ctx_erase_dom Γ :
-  dom ⌊Γ⌋* ≡ ctxdom Γ.
+  dom ⌊Γ⌋* = ctxdom Γ.
 Proof.
   induction Γ; simpl.
   - cbn. apply dom_empty.

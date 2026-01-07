@@ -8,28 +8,18 @@ Syntax/Lang.v
 Syntax/Qualifier.v
 Syntax/RefinementType.v
 Syntax/BasicTyping.v
+Syntax/Instantiation.v
 Syntax/Syntax.v
 LocallyNameless/FineRty.v
 LocallyNameless/LangLc.v
 LocallyNameless/QualifierLc.v
 LocallyNameless/RtyLc.v
+LocallyNameless/InstantiationLc.v
 LocallyNameless/Lc.v
 OperationalSemantics.v
 BasicTypingProp.v
-Instantiation.v
-# CoreLang.v
-# NamelessTactics.v
-# CoreLangProp.v
-# BasicTyping.v
-# BasicTypingProp.v
-# Qualifier.v
-# ListCtx.v
-# RefinementType.v
-# RefinementTypeProp.v
-# Instantiation.v
-# Denotation.v
-# InstantiationProp.v
+Denotation.v
+Typing.v
+InstantiationProp.v
 # DenotationProp.v
-# Typing.v
-# TypingProp.v
 # Fundamental.v

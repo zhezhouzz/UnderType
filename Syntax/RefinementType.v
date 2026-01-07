@@ -142,21 +142,21 @@ Global Hint Constructors lc_rty: core.
 Instance locally_closed_rty_instance : Lc rty := lc_rty.
 Arguments locally_closed_rty_instance /.
     
-Lemma lc_rty_fine: forall τ, lc_rty τ -> fine_rty τ.
+Lemma lc_rty_fine: forall τ, lc τ -> fine_rty τ.
 Proof.
   induction 1; eauto.
 Qed.
 
 (** Closed under free variable set *)
 
-Inductive closed_rty (d : aset) (ρ: rty): Prop :=
-| closed_rty_: lc_rty ρ -> fv_rty ρ ⊆ d -> closed_rty d ρ.
+(* Inductive closed_rty (d : aset) (ρ: rty): Prop :=
+| closed_rty_: lc ρ -> stale ρ ⊆ d -> closed_rty d ρ.
 
 Lemma closed_rty_fine: forall d τ, closed_rty d τ -> fine_rty τ.
 Proof.
   pose lc_rty_fine.
   induction 1; eauto.
-Qed.
+Qed. *)
 
 (** Well-formedness of type context. All terms and types are alpha-converted to
   have unique names.
@@ -166,8 +166,9 @@ Inductive ok_ctx: listctx rty -> Prop :=
 | ok_ctx_nil: ok_ctx []
 | ok_ctx_cons: forall (Γ: listctx rty)(x: atom) (ρ: rty),
     ok_ctx Γ ->
-    closed_rty (ctxdom Γ) ρ ->
-    x ∉ ctxdom Γ ->
+    lc ρ ->
+    stale ρ ⊆ stale Γ ->
+    x ∉ stale Γ ->
     ok_ctx (Γ ++ [(x, ρ)]).
 
 (** Shorthands, used in typing rules *)
@@ -176,3 +177,11 @@ Definition mk_eq_constant_over c := {: ty_of_const c | b0:c= c }.
 Definition mk_bot ty := [: ty | mk_q_under_bot ].
 Definition mk_top ty := [: ty | mk_q_under_top ].
 Definition mk_eq_var ty (x: atom) := [: ty | b0:x= x ].
+
+Lemma empty_closed_rty_stale: forall τ, stale τ ⊆ ∅ -> stale τ = ∅.
+Proof.
+  intros. set_solver.
+Qed.
+
+Global Hint Resolve empty_closed_rty_stale: core.
+Global Hint Resolve lc_rty_fine: core.

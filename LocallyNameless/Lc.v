@@ -1,4 +1,4 @@
-From CT.LocallyNameless Require Export FineRty LangLc QualifierLc RtyLc.
+From CT.LocallyNameless Require Export FineRty LangLc QualifierLc RtyLc InstantiationLc.
 
 Import BaseDef MyTactics Primitives Lang LangLc Syntax.
 
@@ -48,8 +48,32 @@ Arguments OpenBody_tm /.
 Proof. apply OpenBody_all with (staleA := stale) (openA := open) (substA := subst) (lcA := lc); typeclasses eauto. Qed.
 Arguments OpenBody_value /.
 
+Lemma ok_ctx_destruct_tail : forall Γ (x: atom) (t: rty), ok_ctx (Γ ++ [(x, t)]) ->
+lc t /\ stale t ⊆ stale Γ /\ x # Γ /\ ok_ctx Γ.
+Proof.
+  intros. invclear H; eauto.
+  - ListCtx.listctx_set_solver.
+  - repeat split; eauto; ListCtx.listctx_set_simpl.
+Qed.
+
+Ltac ok_solver_aux :=
+  match goal with
+  | [H: ok_ctx (?Γ ++ [(?x, ?t)]) |- ?G ] => 
+    match G with
+    | [lc _] => apply ok_ctx_destruct_tail in H; destruct H; auto
+    | [_ ⊆ _] => apply ok_ctx_destruct_tail in H; destruct H; auto
+    | [_ # _] => apply ok_ctx_destruct_tail in H; destruct H; auto
+    | [ok_ctx _] => apply ok_ctx_destruct_tail in H; destruct H; auto
+    end
+  | [H: ok_ctx ?Γ |- ok_ctx (?Γ ++ [(_, _)]) ] => econstructor; eauto
+  end.
+
+Ltac ok_solver :=
+  repeat (ok_solver_aux || ListCtx.listctx_set_solver).
+
 Ltac lc_solver_aux2 :=
   match goal with
+  | [H: lc ?e |- body ?e] => apply lc_implies_body; auto
   | [H: body (vlam _ _) |- _ ] => rewrite body_abs_iff_body2 in H; mydestr; auto
   | [H: body2 ?e |- body (vlam _ ?e) ] => rewrite body_abs_iff_body2; auto
   | [H: body2 ?e |- body ({1 ~> ?u} ?e) ] => apply open_body; auto

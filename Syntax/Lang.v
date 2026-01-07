@@ -195,9 +195,14 @@ Instance subst_tm_with_value : Subst value tm := subst_tm.
 Arguments open_tm_with_value /.
 
 (* Syntax Suger *)
+Definition tletapp_arg_value (f: value) (arg: value) :=
+  tletapp f arg (treturn (vbvar 0)).
+
+Definition tletapp_arg_tm (f: value) (arg: tm) :=
+  tlete arg (tletapp f (vbvar 0) (treturn (vbvar 0))).
+
 Definition mk_app (e: tm) (v: tm) :=
   tlete e (tlete v (tletapp (vbvar 1) (vbvar 0) (treturn (vbvar 0)))).
-
 
 (* Well-founded constraint of base type for fixed point. *)
 Definition constant_measure (c : constant) :=

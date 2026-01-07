@@ -58,7 +58,8 @@ Fixpoint denote_vals {n} (vals : vec value n) : option (vec constant n) :=
 
 (** Denote a _closed_ qualifier to a Coq proposition. The result is [False] if the
 qualifier mentions functions. *)
-Definition denote_qualifier (ϕ : qualifier) : Prop :=
+#[global] Instance Denotation_qualifier: Denotation qualifier Prop :=
+  fun ϕ =>
   match ϕ with
   | qual vals prop =>
       match denote_vals vals with
@@ -66,6 +67,8 @@ Definition denote_qualifier (ϕ : qualifier) : Prop :=
       | None => False
       end
   end.
+
+Hint Unfold Denotation_qualifier: qual_class_simpl.
 
 (** * Notations *)
 
@@ -111,12 +114,6 @@ Definition open_qualifier (k: nat) (s: value) (ϕ: qualifier) : qualifier :=
 Instance open_qualifier_with_value : Open value qualifier := open_qualifier.
 Arguments open_qualifier_with_value /.
 
-(* Opening values/terms with an atom binder (used in [lc] definitions) *)
-#[global]
-Instance open_qualifier_with_atom : Open atom qualifier :=
-  fun k (a : atom) (ϕ : qualifier) => open_qualifier k (vfvar a) ϕ.
-Arguments open_qualifier_with_atom /.
-
 Definition subst_qualifier (x: atom) (v: value) (ϕ: qualifier) : qualifier :=
   match ϕ with
   | qual vals prop =>
@@ -156,7 +153,3 @@ Notation " 'b0:v≺' v " :=
 Notation " 'b0:c≺' c " :=
   (qual [# vbvar 0; vconst c] (fun v => (v !!! 0) ≺ (v !!! 1))%fin)
     (at level 5).
-
-(** Aux *)
-
-Notation "'⟦' ϕ '⟧q' " := (denote_qualifier ϕ) (at level 20, format "⟦ ϕ ⟧q", ϕ constr).

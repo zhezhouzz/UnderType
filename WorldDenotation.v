@@ -4,9 +4,9 @@ From Stdlib.Program Require Import Wf.
 From CT Require Import Syntax Lc.
 From CT Require Import OperationalSemantics.
 From CT Require Import BasicTypingProp.
+From CT Require Import Instantiation.
 
-Import BaseDef Lang MyTactics Primitives OperationalSemantics BasicTyping Qualifier RefinementType ListCtx List LangLc Lc QualifierLc.
-
+Import BaseDef Lang MyTactics Primitives OperationalSemantics BasicTyping Qualifier RefinementType Instantiation ListCtx List LangLc Lc QualifierLc.
 
 
 (** This file defines type denotations in λᴱ (Fig. 7). *)
@@ -47,35 +47,102 @@ fun τ => rtyR (rty_measure τ) τ.
 
 Hint Unfold Denotation_rty: class_simpl.
 
-(** We first define the normal denotation of a context, e.g., substitution of a context. *)
-Inductive ctxEnv: listctx rty -> env -> Prop :=
-| ctxEnvEmp: ctxEnv [] ∅
-| ctxEnvInd: forall Γ (x: atom) τ σ (v: value),
-  ctxEnv Γ σ ->
-  ok_ctx (Γ ++ [(x, τ)]) ->
-  ⟦ m{ σ } (flip_rty τ)⟧ (treturn v) ->
-  ctxEnv (Γ ++ [(x, τ)]) (<[x:=v]> σ).
+(** Context denotation (Fig. 7), defined as an inductive relation instead of a
+  [Prop]-valued function. *)
+Inductive ctxRst: listctx rty -> world -> Prop :=
+| ctxRst0: ctxRst [] emp_world
+| ctxRst1: forall Γ (x: atom) b ϕ w w',
+  closed_world w' ->
+  ctxRst Γ w ->
+  ok_ctx (Γ ++ [(x, {: b | ϕ})]) ->
+  (world_insert x 
+    (fun σ v => ⟦m{ σ } {: b | ϕ}⟧ (treturn v)) w) = w' ->
+  ctxRst (Γ ++ [(x, {: b | ϕ})]) w'
+| ctxRst2: forall Γ (x: atom) b ϕ w (choice: env -> value) w',
+  closed_world w' ->
+    ctxRst Γ w ->
+    ok_ctx (Γ ++ [(x, [: b | ϕ])]) ->
+    w ⊨ (fun σ => ⟦m{ σ } {: b | ϕ}⟧ (treturn (choice σ))) ->
+    world_insert x (fun σ v => v = choice σ) w = w' ->
+    ctxRst (Γ ++ [(x, [: b | ϕ])]) w'
+| ctxRst3: forall Γ (x: atom) ρ τ w w',
+  closed_world w' ->
+    ctxRst Γ w ->
+    ok_ctx (Γ ++ [(x, ρ ⇨ τ)]) ->
+    (world_insert x 
+      (fun σ v => ⟦ m{ σ } ρ ⇨ τ ⟧ (treturn v)) w) = w' ->
+    ctxRst (Γ ++ [(x, ρ ⇨ τ)]) w'.
 
-Fixpoint ctxOverBindings (Γ: listctx rty): aset :=
-  match Γ with
-  | [] => ∅
-  | (x, {: _ | _}) :: Γ => {[x]} ∪ ctxOverBindings Γ
-  | (x, [: _ | _]) :: Γ => ctxOverBindings Γ
-  | (x, _ ⇨ _) :: Γ => {[x]} ∪ ctxOverBindings Γ
-  end.
-
-#[global] Instance Denotation_rtyctx: Denotation (listctx rty) (env ->Prop) := ctxEnv.
+#[global] Instance Denotation_rtyctx: Denotation (listctx rty) (world -> Prop) := ctxRst.
 
 Hint Unfold Denotation_rtyctx: class_simpl.
 
-Definition rtyR_env (Γ: listctx rty) (τ: rty) (e: tm) : Prop :=
-  forall σ2, ⟦ Γ ⟧ σ2 ->
-  exists σ1, ⟦ Γ ⟧ σ1 /\
-  [D ctxOverBindings Γ ∪ stale τ ] σ1 = [D ctxOverBindings Γ ∪ stale τ ] σ2 /\ ⟦ m{ σ2 } τ ⟧ ( m{ σ1 } e).
+Section ctxRst_Examples.
+  Variable X: atom.
+  Variable Y: atom.
+  Axiom X_neq_Y: X <> Y.
 
-Notation " '⟦' τ '⟧{' Γ '}' e" := (rtyR_env Γ τ e) (at level 20, format "⟦ τ ⟧{ Γ } e", Γ constr, τ constr, e constr).
+  Definition vTrue : value := vconst (cbool true).
+  Definition vFalse : value := vconst (cbool false).
+
+  Definition empty_env: amap value := ∅.
+  Definition subst1: env := {[X:=vTrue; Y:=vTrue]}.
+  Definition subst2: env := {[X:=vTrue; Y:=vFalse]}.
+  Definition subst3: env := {[X:=vFalse; Y:=vTrue]}.
+  Definition subst4: env := {[X:=vFalse; Y:=vFalse]}.
+
+  Definition ctx1: listctx rty := [(X, {:TBool| mk_q_under_top}); (Y, [:TBool|b0:v= X])].
+
+  (* From Stdlib.Logic Require Import FunctionalExtensionality. *)
+  (* From Stdlib.Logic Require Import PropExtensionality. *)
+
+  Lemma ctx1_denote_sound: forall (P: env -> Prop),
+    (forall (x: bool), exists (y: bool), y = x /\ P {[X:=vconst (cbool x); Y:=vconst (cbool y)]}) <-> (exists w, w ⊨ P /\ ctxRst ctx1 w).
+  Proof.
+  Admitted.
+
+End ctxRst_Examples.
+
+Lemma ok_ctx_destruct_tail: forall Γ (x: atom) (t: rty), ok_ctx (Γ ++ [(x, t)]) -> ok_ctx Γ.
+Proof.
+  intros. invclear H; listctx_set_solver.
+Qed.
+
+Ltac ok_solver_aux :=
+  match goal with
+  | [H: ok_ctx (?Γ ++ [(?x, ?t)]) |- ok_ctx ?Γ ] => apply ok_ctx_destruct_tail in H; eauto
+  end.
+
+Ltac ok_solver :=
+  repeat (ok_solver_aux || listctx_set_solver).
 
 (** * Properties of denotation *)
+
+(** Not true: if under type with empty qualifier *)
+
+(* Lemma ctxRst_non_empty: forall Γ, ok_ctx Γ -> exists w, ctxRst Γ w.
+Proof.
+  apply (List.rev_ind (fun Γ => ok_ctx Γ -> exists w, ctxRst Γ w)); eauto.
+  - hauto.
+  - intros (x & ρ) Γ HP HOk.
+    assert (ok_ctx Γ) as HOk_pre by ok_solver.
+    destruct HP as (w & Hw); eauto.
+    destruct ρ.
+    + do 2 econstructor; eauto. admit.
+    + do 2 econstructor; eauto. admit.
+  assert (ok_ctx Γ). admit. apply HP in H. clear HP. destruct H as (w & HP).
+    destruct ρ.
+    + exists (world_insert x (fun σ v => ⟦ m{ σ }r {: b | ϕ} ⟧ v) w). econstructor; eauto. admit.
+    + exists (world_insert x (fun σ v => ⟦ m{ σ }r [: b | ϕ] ⟧ v) w). econstructor; eauto. admit.
+  induction Γ.
+  - exists emp_world. econstructor.
+  - admit.
+  - intros (x & ρ) Γ HP HOk. assert (ok_ctx Γ). admit. apply HP in H. clear HP. destruct H as (P & HP).
+    destruct ρ.
+    + exists (fun Γv' => exists Γv (v: value), Γv' = (<[x := v]> Γv) /\ ⟦ m{ Γv }r {: b | ϕ} ⟧ v ).
+      econstructor; eauto. admit.
+    + 
+  induction Γ. admit. *)
 
 Lemma rtyR_typed_closed gas τ e :
   rtyR gas τ e ->
@@ -91,7 +158,7 @@ Proof.
 Qed.
 
 Lemma rtyR_closed_tm gas ρ e :
-  rtyR gas ρ e -> stale e = ∅.
+  rtyR gas ρ e -> stale e ≡ ∅.
 Proof.
   intros H. apply rtyR_basic_typing in H.
   basic_typing_regular_simp. lc_set_solver.
@@ -104,62 +171,31 @@ Proof.
   basic_typing_regular_simp.
 Qed.
 
-Lemma rtyR_regular gas ρ e : rtyR gas ρ e -> ∅ ⊢ e ⋮ ⌊ ρ ⌋ /\ stale e = ∅ /\ stale ρ = ∅ /\ lc ρ.
+Lemma ctxRst_closed_pp Γ w : ctxRst Γ w -> closed_world w.
 Proof.
-  intuition.
-  - apply rtyR_basic_typing in H; eauto.
-  - apply rtyR_closed_tm in H; eauto.
-  - apply rtyR_typed_closed in H. mydestr. set_solver.
-  - apply rtyR_typed_closed in H. hauto.
-Qed.
+  induction 1; eauto.
+Admitted.
 
-Lemma ctxEnv_domain Γ σ : ctxEnv Γ σ -> stale Γ = stale σ.
-Proof.
-  induction 1; ln_simpl; eauto.
-  - autounfold with class_simpl. 
-    unfold listctx_stale.
-    unfold env_stale.
-  listctx_set_simpl.
-  set_solver.
-Qed.
-
-Lemma ctxEnv_closed_env Γ σ : ctxEnv Γ σ -> closed_env σ.
-Proof.
-  induction 1.
-  - apply map_Forall_empty.
-  - apply ok_ctx_destruct_tail in H0; mydestr.
-    apply map_Forall_insert; eauto.
-    + apply ctxEnv_domain in H.
-      assert (x # stale σ) by my_set_solver.
-      ln_simpl. my_set_solver.
-    + split; eauto.
-      { apply rtyR_closed_tm in H1. ln_simpl; eauto. }
-Qed.
-
-Lemma ctxEnv_dom Γ σ : ctxEnv Γ σ -> stale Γ = stale σ.
+Lemma ctxRst_dom Γ w :
+  ctxRst Γ w -> stale Γ ≡ stale w.
 Proof.
   intros H. induction H; subst; eauto.
-  - ln_simpl. listctx_set_simpl. 
-    rewrite IHctxEnv. lc_set_solver.
+  all: 
+    rewrite world_insert_stale; rewrite <- IHctxRst;
+    ln_simpl; listctx_set_simpl; lc_set_solver.
 Qed.
 
-Lemma ctxEnv_ok_ctx Γ Γv :
-  ctxEnv Γ Γv -> ok_ctx Γ.
+Lemma ctxRst_ok_ctx Γ Γv :
+  ctxRst Γ Γv -> ok_ctx Γ.
 Proof.
   induction 1; eauto. econstructor.
 Qed.
 
-Lemma ctxEnv_regular Γ σ:
-  ctxEnv Γ σ -> ok_ctx Γ /\ stale Γ = stale σ /\ closed_env σ.
+Lemma ctxRst_regular Γ w:
+  ctxRst Γ w -> ok_ctx Γ /\ stale Γ ≡ stale w /\ closed_world w.
 Proof.
-  pose ctxEnv_ok_ctx. pose ctxEnv_dom. pose ctxEnv_closed_env. intuition; eauto.
+  pose ctxRst_ok_ctx. pose ctxRst_dom. pose ctxRst_closed_pp. intuition; eauto.
 Qed.
-
-Ltac denotation_regular_simp :=
-  repeat match goal with
-  | [H: ctxEnv _ _ |- _ ] => apply ctxEnv_regular in H; simp_hyp H
-  | [H: rtyR _ _ _ |- _ ] => apply rtyR_regular in H; simp_hyp H
-  end.
 
 Lemma mk_top_lc b : lc (mk_top b).
 Proof.
@@ -240,11 +276,11 @@ Lemma denote_base_rty_qualifier_and B ϕ1 ϕ2 ρ:
   ⟦ {: B | ϕ1 & ϕ2} ⟧ ρ.
 Proof.
   intros (?&?&?) (?&?&?).
-  split; [| split]; eauto using closed_base_rty_qualifier_and_eq.
+  split; [| split]; eauto using closed_base_rty_qualifier_and_eq. 
   simp_hyps; subst.
   split. 
-  + apply lc_rty_qualifier_and; eauto.
-  +
+  - apply lc_rty_qualifier_and; eauto.
+  -
   exists v. intuition.
   rewrite qualifier_and_open.
   rewrite denote_qualifier_and.
@@ -364,9 +400,9 @@ Qed.
 
 Ltac syntax_solver :=
   match goal with
-  | [|- _ ⊢ _ ⋮ _] => denotation_regular_simp; basic_typing_solver
-  | [|- lc _ ] => denotation_regular_simp; basic_typing_regular_simp; lc_set_solver
-  | [|- body _ ] => denotation_regular_simp; basic_typing_regular_simp; lc_set_solver
+  | [|- _ ⊢ _ ⋮ _] => basic_typing_solver
+  | [|- lc _ ] => basic_typing_regular_simp; lc_set_solver
+  | [|- body _ ] => basic_typing_regular_simp; lc_set_solver
   end.
 
 Lemma tm_refine_tmatchb_true: forall (e1 e2: tm) T,
