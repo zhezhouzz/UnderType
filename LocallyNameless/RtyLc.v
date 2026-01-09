@@ -259,3 +259,8 @@ Lemma flip_rty_subst τ x v: {x:=v} (flip_rty τ) = flip_rty ({x:=v} τ).
 Proof.
   destruct τ; simpl; intros; intuition.
 Qed.
+
+Lemma flip_rty_stale τ: stale (flip_rty τ) = stale τ.
+Proof.
+  destruct τ; simpl; intros; intuition.
+Qed.

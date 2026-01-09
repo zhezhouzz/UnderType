@@ -7,13 +7,8 @@ Import BaseDef.
 Import Lang.
 Import Primitives.
 
-Definition tyctx := amap ty.
-#[global]
-Instance tyctx_stale : Stale tyctx := dom.
-Arguments tyctx_stale /.
-
 (** Basic typing rules  *)
-Inductive tm_has_type : tyctx -> tm -> ty -> Prop :=
+Inductive tm_has_type : amap ty -> tm -> ty -> Prop :=
 | BtErr: forall Γ T, tm_has_type Γ (terr T) T
 | BtValue : forall Γ v T, value_has_type Γ v T -> tm_has_type Γ (treturn v) T
 | BtLetE : forall Γ e1 e2 T1 T2 (L: aset),
@@ -35,7 +30,7 @@ Inductive tm_has_type : tyctx -> tm -> ty -> Prop :=
     tm_has_type Γ e1 T ->
     tm_has_type Γ e2 T ->
     tm_has_type Γ (tmatchb v e1 e2) T
-with value_has_type : tyctx -> value -> ty -> Prop :=
+with value_has_type : amap ty -> value -> ty -> Prop :=
 | BtConst : forall Γ (c: constant), value_has_type Γ (vconst c) (ty_of_const c)
 | BtVar : forall Γ (x: atom) T,
     Γ !! x = Some T -> value_has_type Γ (vfvar x) T
@@ -53,9 +48,9 @@ Global Hint Constructors tm_has_type: core.
 Global Hint Constructors value_has_type: core.
 
 #[global]
-Instance has_normal_type_tm_instance : Typing tyctx tm ty := tm_has_type.
+Instance has_normal_type_tm_instance : Typing (amap ty) tm ty := tm_has_type.
 Arguments has_normal_type_tm_instance /.
 
 #[global]
-Instance has_normal_type_value_instance : Typing tyctx value ty := value_has_type.
+Instance has_normal_type_value_instance : Typing (amap ty) value ty := value_has_type.
 Arguments has_normal_type_value_instance /.

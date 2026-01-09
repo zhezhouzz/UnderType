@@ -149,23 +149,6 @@ Proof.
     split; intros; destruct τ; simpl in *; eauto; fine_rty_aux_simp_aux; eauto.
 Qed.
 
-Ltac fine_rty_simp_aux :=
-  match goal with
-  | [H: context [ (({?k ~> ?v} _) ⇨ ({S ?k ~> ?v} _)) ] |- _ ] =>
-      setoid_rewrite open_rty_arr_rev in H
-  | [H: context [ (({?x := ?v} _) ⇨ ({?x := ?v} _)) ] |- _ ] =>
-      setoid_rewrite rty_subst_arr_rev in H
-  | [H: _ |- context [ (({?k ~> ?v} _) ⇨ ({S ?k ~> ?v} _)) ]] =>
-      setoid_rewrite open_rty_arr_rev
-  | [H: _ |- context [ (({?x := ?v} _) ⇨ ({?x := ?v} _)) ] ] =>
-      setoid_rewrite rty_subst_arr_rev
-  | [H: context [ fine_rty ({_ ~> _} ?τ) ] |- _ ] => setoid_rewrite open_preserve in H
-  | [H: context [ fine_rty ({_ := _} ?τ) ] |- _ ] => setoid_rewrite subst_preserve in H
-  | [H: _ |- context [ fine_rty ({_ ~> _} ?τ) ] ] => setoid_rewrite open_preserve
-  | [H: _ |- context [ fine_rty ({_ := _} ?τ) ] ] => setoid_rewrite subst_preserve
-  | _ => fine_rty_aux_simp_aux
-  end.
-
 Lemma lc_under_base_q: forall b ϕ, lc ([:b|ϕ]) <-> body ϕ.
 Proof.
   split; intros; sinvert H; eauto.
@@ -183,12 +166,6 @@ Proof.
   split; intros; sinvert H; econstructor; eauto.
 Qed.
 
-(* Lemma closed_rty_base_flip: forall L b ϕ, closed_rty L {:b|ϕ} <-> closed_rty L [:b|ϕ].
-Proof.
-  split; intros; sinvert H; econstructor; eauto;
-  rewrite lc_base_flip in *; eauto.
-Qed. *)
-
 Lemma lc_rty_arr: forall ρ τ, lc (ρ ⇨ τ) <-> fine_rty (ρ ⇨ τ) /\ lc ρ /\ body τ.
 Proof.
   split; intros; sinvert H.
@@ -196,18 +173,22 @@ Proof.
   - unfold body in H1. simp_hyps. auto_exists_L; eauto.
 Qed.
 
-(* Lemma closed_rty_arr:
-  ∀ (L : aset) (ρ τ : rty),
-    closed_rty L (ρ⇨τ) ↔ (fine_rty (ρ⇨τ)) /\ closed_rty L ρ ∧ body τ /\ (stale τ ⊆ L).
-Proof.
-  split; intros.
-  - sinvert H. rewrite lc_rty_arr in H0. intuition.
-    + econstructor; eauto. my_set_solver.
-    + my_set_solver.
-  - simp_hyps. sinvert H1. econstructor; eauto.
-    + rewrite lc_rty_arr. intuition.
-    + my_set_solver.
-Qed. *)
+Ltac fine_rty_simp_aux :=
+  match goal with
+  | [H: context [ (({?k ~> ?v} _) ⇨ ({S ?k ~> ?v} _)) ] |- _ ] =>
+      setoid_rewrite open_rty_arr_rev in H
+  | [H: context [ (({?x := ?v} _) ⇨ ({?x := ?v} _)) ] |- _ ] =>
+      setoid_rewrite rty_subst_arr_rev in H
+  | [H: _ |- context [ (({?k ~> ?v} _) ⇨ ({S ?k ~> ?v} _)) ]] =>
+      setoid_rewrite open_rty_arr_rev
+  | [H: _ |- context [ (({?x := ?v} _) ⇨ ({?x := ?v} _)) ] ] =>
+      setoid_rewrite rty_subst_arr_rev
+  | [H: context [ fine_rty ({_ ~> _} ?τ) ] |- _ ] => setoid_rewrite open_preserve in H
+  | [H: context [ fine_rty ({_ := _} ?τ) ] |- _ ] => setoid_rewrite subst_preserve in H
+  | [H: _ |- context [ fine_rty ({_ ~> _} ?τ) ] ] => setoid_rewrite open_preserve
+  | [H: _ |- context [ fine_rty ({_ := _} ?τ) ] ] => setoid_rewrite subst_preserve
+  | _ => fine_rty_aux_simp_aux
+  end.
 
 Ltac fine_rty_simp := simpl in *; repeat fine_rty_simp_aux.
 

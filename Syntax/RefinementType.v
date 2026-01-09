@@ -168,8 +168,34 @@ Inductive ok_ctx: listctx rty -> Prop :=
     ok_ctx Γ ->
     lc ρ ->
     stale ρ ⊆ stale Γ ->
+    fine_rty ρ ->
     x ∉ stale Γ ->
     ok_ctx (Γ ++ [(x, ρ)]).
+
+Lemma ok_ctx_regular Γ:
+  ok_ctx Γ -> ok Γ /\ (forall x ρ, ctxfind Γ x = Some ρ -> fine_rty ρ /\ lc ρ /\ stale ρ ⊆ stale Γ /\ x # ρ).
+Proof.
+  induction 1; intuition; simpl in *; eauto; try hauto.
+  - destruct (atom_dec x x0); subst.
+    + rewrite ctxfind_last_eq in H6 by auto. hauto.
+    + rewrite ctxfind_last_neq in H6 by auto. set_solver. 
+  - destruct (atom_dec x x0); subst.
+    + rewrite ctxfind_last_eq in H6 by auto. hauto.
+    + rewrite ctxfind_last_neq in H6 by auto. set_solver.
+  - destruct (atom_dec x x0); subst.
+    + rewrite ctxfind_last_eq in H6 by auto. simp_hyps.
+      intros; subst.
+      autounfold with class_simpl in *.
+      listctx_set_simpl. MyTactics.my_set_solver. 
+    + rewrite ctxfind_last_neq in H6 by auto.
+      apply H5 in H6.
+      autounfold with class_simpl in *.
+      listctx_set_simpl.
+      MyTactics.my_set_solver. 
+  - destruct (atom_dec x x0); subst.
+    + rewrite ctxfind_last_eq in H6 by auto. hauto.
+    + rewrite ctxfind_last_neq in H6 by auto. set_solver.
+Qed.
 
 (** Shorthands, used in typing rules *)
 Definition mk_eq_constant c := [: ty_of_const c | b0:c= c ].

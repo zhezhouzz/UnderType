@@ -6,9 +6,6 @@ From CT Require Import BaseDef MyTactics Primitives Lang.
 
 (** Environment (substitution) *)
 Notation env := (amap value).
-#[global] Instance env_stale : Stale env := 
-  fun env => dom env.
-Arguments env_stale /.
 
 Definition closed_env (env : env) := map_Forall (fun _ v => stale v = ∅) env.
 

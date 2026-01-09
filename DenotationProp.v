@@ -5,8 +5,9 @@ From CT Require Import Syntax Lc.
 From CT Require Import OperationalSemantics.
 From CT Require Import BasicTypingProp.
 From CT Require Import Denotation.
+From CT Require Import InstantiationProp.
 
-Import BaseDef Lang MyTactics Primitives OperationalSemantics BasicTyping Qualifier RefinementType Instantiation ListCtx List LangLc Lc QualifierLc Denotation.
+Import BaseDef Lang MyTactics Primitives OperationalSemantics BasicTyping Qualifier RefinementType Instantiation ListCtx List LangLc Lc QualifierLc Denotation InstantiationProp.
 
 (* Ltac is_tm_rty_tac := *)
 (*   match goal with *)
@@ -53,59 +54,40 @@ Proof.
     basic_typing_solver.
 Qed.
 
-(* Lemma ctxRst_insert_easy Γ P (x: atom) ρ P': *)
-(*     ctxRst Γ P -> *)
-(*     x ∉ ctxdom Γ -> *)
-(*     (forall env (v: value), ⟦ m{ env }r ρ ⟧ v -> P env <-> P' (<[ x := v ]> env)) -> *)
-(*     ctxRst (Γ ++ [(x, ρ)]) P'. *)
-(* Proof. *)
-(*   intros. econstructor; eauto. *)
-(*   econstructor; eauto using ctxRst_ok_ctx. *)
-(*   apply rtyR_typed_closed in H1. simp_hyps. *)
-(*   (* This should be a lemma similar to [msubst_preserves_closed_rty_empty], or *)
-(*   we should strenghthen this lemma. But don't bother now as it is only used *)
-(*   here. *) *)
-(*   sinvert H3. *)
-(*   econstructor. eauto using lc_msubst_rty, ctxRst_lc. *)
-(*   rewrite fv_of_msubst_rty_closed in H5 by eauto using ctxRst_closed_env. *)
-(*   rewrite ctxRst_dom in * by eauto. *)
-(*   my_set_solver. *)
-(* Qed. *)
-
-(* Lemma ctxRst_ctxfind Γ Γv x ρ : *)
-(*   ctxRst Γ Γv -> *)
-(*   ctxfind Γ x = Some ρ -> *)
-(*   fine_rty ρ -> *)
-(*   exists (v : value), Γv !! x = Some v /\ ⟦ m{ Γv }r ρ ⟧ v. *)
-(* Proof. *)
-(*   induction 1. *)
-(*   - easy. *)
-(*   - intros. *)
-(*     select (ctxfind (_ ++ _) _ = _) *)
-(*       (fun H => apply ctxfind_app in H; eauto using ok_ctx_ok). *)
-
-(*     assert (forall (v' : value), (⟦(m{env}r) ρ⟧) v' -> *)
-(*                             (⟦(m{<[x0:=v]> env}r) ρ⟧) v'). { *)
-(*       select (⟦ _ ⟧ _) (fun H => apply rtyR_typed_closed in H). simp_hyps. *)
-(*       intros. *)
-(*       apply rtyR_msubst_insert_eq; eauto using ctxRst_closed_env. *)
-(*       select (_ ⊢ _ ⋮ _) *)
-(*         (fun H => apply basic_typing_contains_fv_tm in H; simpl in H). *)
-(*       my_set_solver. *)
-(*       select (ok_ctx _) (fun H => apply ok_ctx_ok in H; apply ok_post_destruct in H). *)
-(*       srewrite ctxRst_dom. *)
-(*       simp_hyps. *)
-(*       apply not_elem_of_dom. eauto. *)
-(*     } *)
-(*     destruct_or!; simp_hyps. *)
-(*     + eexists. split; eauto. *)
-(*       assert (x <> x0). { *)
-(*         select (ok_ctx _) (fun H => sinvert H); listctx_set_simpl. *)
-(*         select (ctxfind _ _ = _) (fun H => apply ctxfind_some_implies_in_dom in H). *)
-(*         my_set_solver. *)
-(*       } *)
-(*       by simplify_map_eq. *)
-(*     + simpl in *. *)
-(*       case_decide; try easy. simplify_eq. *)
-(*       eexists. split; eauto. by simplify_map_eq. *)
-(* Qed. *)
+Lemma ctxRst_ctxfind Γ σ x ρ :
+  ctxEnv Γ σ ->
+  ctxfind Γ x = Some ρ ->
+  (* fine_rty ρ -> *)
+  exists (v : value), σ !! x = Some v /\ ⟦ m{ σ } (flip_rty ρ) ⟧ (treturn v).
+Proof.
+  intros.
+  assert (fine_rty ρ) as Hrefine by (misc_solver).
+  assert (ok_ctx Γ) as Hok by (misc_solver).
+  assert (x # ρ) as Hxρ. { misc_solver. }
+  revert_all.
+  induction 1.
+  - easy.
+  - intros.
+    destruct (atom_dec x x0); subst.
+    + rewrite ctxfind_last_eq in H2 by misc_solver.
+      simp_hyps. intros; subst.
+      exists v. split; eauto.
+      * misc_solver.
+      * rewrite msubst_destruct_rev; misc_solver.
+        rewrite subst_fresh; misc_solver.
+        rewrite <- H3. my_set_solver.
+    + rewrite ctxfind_last_neq in H2 by misc_solver.
+      destruct IHctxEnv as (v' & Hv' & Hdenote'); eauto. misc_solver.
+      assert (x0 # σ) as Hx0σ. {
+        misc_solver.
+        rewrite <- H4. eauto.
+      }
+      exists v'. split; eauto; try solve [misc_solver].
+      * rewrite msubst_destruct_rev by misc_solver.
+        rewrite subst_fresh. misc_solver.
+        { simp_tac.
+          assert (stale ρ ∖ stale σ ≡ ∅) as HH by my_set_solver.
+          eapply empty_difference_subseteq in HH.
+          misc_solver.
+        }
+Qed.

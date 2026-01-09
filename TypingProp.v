@@ -44,23 +44,6 @@ Ltac closed_simp :=
 (*       apply closed_rty_fine in H; simpl in H; intuition *)
 (*   end. *)
 
-Lemma msubst_value_of_op Γv op :
-  m{Γv}v (value_of_op op) = value_of_op op.
-Proof.
-  rewrite msubst_fresh_value. eauto.
-  my_set_solver.
-Qed.
-
-Lemma value_of_op_regular_basic_typing op:
-  ∅ ⊢t value_of_op op ⋮v ty_of_op op.
-Proof.
-  econstructor.
-  simpl. instantiate (1:=∅). intros.
-  econstructor. econstructor. simplify_map_eq. reflexivity. reflexivity.
-  instantiate_atom_listctx.
-  simpl. econstructor. econstructor. simplify_map_eq. reflexivity.
-Qed.
-
 (* Lemma denotation_application_tlete ρ_x A ρ B e_x e: *)
 (*   closed_rty ∅ (ρ !<[ (ex_phi_to_td ρ_x A) ○ B ]>) -> *)
 (*   ∅ ⊢t tlete e_x e ⋮t ⌊ρ⌋ -> *)

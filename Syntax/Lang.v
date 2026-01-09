@@ -219,3 +219,8 @@ Lemma constant_lt_well_founded : well_founded constant_lt.
 Proof.
 apply well_founded_ltof.
 Qed.
+
+(** Convert an event operator to a value:
+  [op] is [fun x => leteffop y = op x in y] *)
+Definition value_of_op op : value :=
+  vlam TNat (tleteffop op (vbvar 0) (treturn (vbvar 0))).

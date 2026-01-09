@@ -377,6 +377,23 @@ Proof.
   rewrite map_fold_empty. auto.
 Qed.
 
+Lemma msubst_value_of_op Γv op :
+  m{Γv} (value_of_op op) = value_of_op op.
+Proof.
+  rewrite msubst_fresh. eauto.
+  my_set_solver.
+Qed.
+
+Ltac subst_simp :=
+  match goal with
+  | |- context [ {_:=_} (flip_rty _) ] => rewrite flip_rty_subst; eauto
+  | H: context [ {_:=_} (flip_rty _) ] |- _ => rewrite flip_rty_subst in H; eauto
+  | |- context [ stale (flip_rty _) ] => rewrite flip_rty_stale; eauto
+  | H: context [ stale (flip_rty _) ] |- _ => rewrite flip_rty_stale in H; eauto
+  | |- context [ ({_ ~> _} (flip_rty _)) ] => rewrite flip_rty_open; eauto
+  | H: context [ ({_ ~> _} (flip_rty _)) ] |- _ => rewrite flip_rty_open in H; eauto
+  end.
+
 Ltac msubst_simp :=
   match goal with
   | |- context [ m{∅} _ ] => rewrite msubst_empty
@@ -422,6 +439,7 @@ Ltac msubst_simp :=
   | |- context [ m{ _ } (flip_rty _) ] => rewrite msubst_flip_rty
   | H: context [ m{ _ } (mk_eq_var _ ?x) ], H': _ !! ?x = Some ?v |- _ => rewrite msubst_mk_eq_var with (v:=v) in H
   | H': _ !! ?x = Some ?v |- context [ m{ _ } (mk_eq_var _ ?x) ] => rewrite msubst_mk_eq_var with (v:=v)
+  | _ => subst_simp
   end; eauto.
 
 (* Most lemmas here are generalization of the corresponding lemmas about

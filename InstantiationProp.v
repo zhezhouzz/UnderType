@@ -115,14 +115,6 @@ Proof.
   unfold erase_ctx. simplify_map_eq. reflexivity.
 Qed.
 
-Ltac my_map_simpl :=
-  match goal with
-  | [H: context [ ∅ ∪ _ ] |- _ ] => rewrite map_empty_union in H
-  | [|- context [ ∅ ∪ _ ] ] => rewrite map_empty_union
-  | [H: context [ _ ∪ ∅ ] |- _ ] => rewrite map_union_empty in H
-  | [|- context [ _ ∪ ∅ ] ] => rewrite map_union_empty
-  end.
-
 Lemma flip_rty_erase_msubst_eq τ: ⌊flip_rty τ⌋ = ⌊τ⌋.
 Proof.
   induction τ; simpl; eauto.
@@ -148,7 +140,7 @@ Ltac simplify_erase_aux1 :=
   | [|- context [ ⌊?Γ ++ [_]⌋* ] ] => rewrite ctx_erase_app_r by eauto
   | [H: context [ ⌊?Γ ++ ?Γ'⌋* ] |- _ ] => rewrite ctx_erase_app in H by eauto
   | [|- context [ ⌊?Γ ++ ?Γ'⌋* ] ] => rewrite ctx_erase_app by eauto
-  | _ => my_map_simpl
+  | _ => my_map_simpl_aux
   end.
 
 Ltac simplify_erase1 :=
@@ -199,28 +191,38 @@ Ltac set_simp_aux :=
 
 Ltac set_simp := repeat set_simp_aux.
 
-
 Ltac rtyR_regular_simp_aux :=
   match goal with
+     | [H: _ ⊢r _ ⋮ _ |- _ ⊢ _ ⋮ _ ] => apply refinement_typing_regular_basic_typing in H
      | [H: ctxEnv _ _ |- lc _ ] => apply ctxEnv_regular in H; simp_hyp H
      | [H: ctxEnv _ _ |- closed_env _ ] => apply ctxEnv_regular in H; simp_hyp H
      | [H: ctxEnv _ _ |- ok_ctx _ ] => apply ctxEnv_regular in H; simp_hyp H; eauto
      | [H: ctxEnv _ _ |- _ ∉ _ ] => apply ctxEnv_regular in H; simp_hyp H; eauto
      | [H: ctxEnv _ _ |- _ # _ ] => apply ctxEnv_regular in H; simp_hyp H; eauto
      | [H: ctxEnv _ _ |- _ ⊆ _ ] => apply ctxEnv_regular in H; eauto; simp_hyp H
+     | [H: ctxEnv _ _ |- fine_rty _ ] => apply ctxEnv_regular in H; eauto; simp_hyp H
      | [H: ctxEnv _ _ |- stale _ = _ ] => apply ctxEnv_regular in H; eauto; simp_hyp H
      | [H: ctxEnv _ _ |- _ !! _ = _ ] => apply ctxEnv_regular in H; eauto; simp_hyp H
      | [H: ctxEnv _ ?Γv |- map_Forall _ ?Γv] => apply ctxEnv_regular in H; eauto
+     | [H: ok_ctx _ |- ok _ ] => apply ok_ctx_regular in H; simp_hyp H; eauto
+     | [H: ok_ctx _ |- _ !! _ = _ ] => apply ok_ctx_regular in H; simp_hyp H; eauto
+     | [H: ok_ctx _ |- _ # _ ] => apply ok_ctx_regular in H; simp_hyp H; eauto
+     | [H: ok_ctx _ |- _ ⊆ _ ] => apply ok_ctx_regular in H; simp_hyp H; eauto
+     | [H: ok_ctx _ |- fine_rty _ ] => apply ok_ctx_regular in H; simp_hyp H; eauto
+     | [H: ok_ctx _ |- stale _ = _ ] => apply ok_ctx_regular in H; simp_hyp H; eauto
+     | [H: ok_ctx _ |- _ !! _ = _ ] => apply ok_ctx_regular in H; simp_hyp H; eauto
      | [H: ⟦ _ ⟧ _  |- lc _ ] => apply rtyR_regular in H; simp_hyp H
      | [H: ⟦ _ ⟧ _  |- _ ⊆ _ ] => apply rtyR_regular in H; eauto; simp_hyp H
      | [H: ⟦ _ ⟧ _  |- stale _ = _ ] => apply rtyR_regular in H; eauto; simp_hyp H
+     | [H: ⟦ _ ⟧ _  |- _ !! _ = _ ] => apply rtyR_regular in H; eauto; simp_hyp H
+     | [H: ⟦ _ ⟧ _  |- _ # _ ] => apply rtyR_regular in H; eauto; simp_hyp H
      | [H: ⟦ _ ⟧ _  |- _ ⊢ _ ⋮ _ ] => apply rtyR_typed_closed in H; simp_hyp H
      end.
 
 Ltac rtyR_regular_simp :=
   repeat rtyR_regular_simp_aux.
 
-Class MsubstPreservesBasicTyping A `{Stale A} `{Subst value A} `{Typing tyctx A ty} := msubst_preserves_basic_typing :
+Class MsubstPreservesBasicTyping A `{Stale A} `{Subst value A} `{Typing (amap ty) A ty} := msubst_preserves_basic_typing :
   forall Γ (σ: env),
     ctxEnv Γ σ ->
     forall Γ' (e: A) T,
@@ -231,7 +233,7 @@ Lemma MsubstPreservesBasicTyping_all
 (A : Type)
 (staleA : Stale A)
 (substA : Subst value A)
-(typingA : @Typing tyctx A ty)
+(typingA : @Typing (amap ty) A ty)
 (msubst_insertA : @MsubstInsert A substA)
 (basic_typing_substA : @BasicTypingSubst A typingA substA)
 : @MsubstPreservesBasicTyping A staleA substA typingA.
@@ -268,7 +270,7 @@ Proof.
   eapply MsubstPreservesBasicTyping_all; typeclasses eauto.
 Qed.
 
-Class MsubstPreservesBasicTypingEmpty A `{Stale A} `{Subst value A} `{Typing tyctx A ty} := msubst_preserves_basic_typing_empty :
+Class MsubstPreservesBasicTypingEmpty A `{Stale A} `{Subst value A} `{Typing (amap ty) A ty} := msubst_preserves_basic_typing_empty :
   forall Γ (σ: env),
     ctxEnv Γ σ ->
     forall e T,
@@ -279,7 +281,7 @@ Lemma MsubstPreservesBasicTypingEmpty_all
 (A : Type)
 (staleA : Stale A)
 (substA : Subst value A)
-(typingA : @Typing tyctx A ty)
+(typingA : @Typing (amap ty) A ty)
 (msubst_preserves_basic_typingA : @MsubstPreservesBasicTyping A staleA substA typingA)
 : @MsubstPreservesBasicTypingEmpty A staleA substA typingA.
 Proof.
@@ -318,43 +320,64 @@ Proof.
     + split; auto. inversion H3. subst. apply not_elem_of_dom in Hx. eauto.
 Qed.
 
-Lemma msubst_destruct_rev_tm: forall (σ: env) (x: atom) (v_x: value) (e: tm),
-    closed_env σ -> stale v_x = ∅ -> x ∉ dom σ ->
+Class MsubstDestructRev A `{Stale A} `{Subst value A} := msubst_destruct_rev :
+  forall (σ: env) (x: atom) (v_x: value) (e: A),
+    closed_env σ -> 
+    stale v_x = ∅ -> 
+    x # σ ->
     (m{<[x:=v_x]> σ}) e = m{σ} ({ x:=v_x } e).
+
+Lemma MsubstDestructRev_all
+(A : Type)
+(staleA : Stale A)
+(substA : Subst value A)
+(msubst_insertA : @MsubstInsert A substA)
+(subst_commuteA : @SubstCommute A staleA substA)
+: @MsubstDestructRev A staleA substA.
 Proof.
+  unfold MsubstDestructRev.
   intros.
   rewrite_msubst_insert.
-  2 : { apply not_elem_of_dom. eauto. }
+  2 : { my_set_solver. }
   revert_all.
-  intros *.
   msubst_tac.
   setoid_rewrite <- H1; eauto.
   2: { my_set_solver. }
-  rewrite subst_commute_tm by my_set_solver; eauto.
+  rewrite subst_commuteA by my_set_solver; eauto.
+Qed.
+
+#[global] Instance MsubstDestructRev_tm: MsubstDestructRev tm.
+Proof.
+  eapply MsubstDestructRev_all; typeclasses eauto.
+Qed.
+
+#[global] Instance MsubstDestructRev_value: MsubstDestructRev value.
+Proof.
+  eapply MsubstDestructRev_all; typeclasses eauto.
+Qed.
+
+#[global] Instance MsubstDestructRev_qualifier: MsubstDestructRev qualifier.
+Proof.
+  eapply MsubstDestructRev_all; typeclasses eauto.
+Qed.
+
+#[global] Instance MsubstDestructRev_rty: MsubstDestructRev rty.
+Proof.
+  eapply MsubstDestructRev_all; typeclasses eauto.
 Qed.
 
 Lemma is_coverage_rty_msubst_aux n : forall τ, rty_measure τ <= n ->
                                          forall σ, closed_env σ -> is_coverage_rty (m{ σ } τ) <-> is_coverage_rty τ.
 Proof.
-  induction n; split; intros Hm; simpl; intros; repeat msubst_simp; simp_hyps; eauto.
-  - pose (rty_measure_gt_0 τ). lia.
-  - pose (rty_measure_gt_0 τ). lia.
-  - destruct τ; eauto; repeat msubst_simp; simp_hyps; eauto.
-    + sinvert Hm.
-    + destruct τ1; eauto; repeat msubst_simp; simp_hyps; eauto; econstructor.
-      * eapply H2; eauto. simpl in *. lia. sinvert Hm; eauto.
-      * eapply H2; eauto. simpl in *. lia. sinvert Hm; eauto.
-      * eapply H2; eauto. simpl in *. lia. sinvert Hm; eauto.
-        repeat msubst_simp; simp_hyps; eauto.
-      * eapply H2; eauto. simpl in *. lia. sinvert Hm; eauto.
-  - destruct τ; eauto; repeat msubst_simp; simp_hyps; eauto.
-    + sinvert Hm.
-    + destruct τ1; eauto; repeat msubst_simp; simp_hyps; eauto; econstructor.
-      * eapply H1; eauto. simpl in *. lia. sinvert Hm; eauto.
-      * eapply H1; eauto. simpl in *. lia. sinvert Hm; eauto.
-      * sinvert Hm; eauto. eapply H1 in H5; eauto. repeat msubst_simp; simp_hyps; eauto.
-        simpl in *. lia.
-      * eapply H1; eauto. simpl in *. lia. sinvert Hm; eauto.
+  induction n; split; intros Hm; simpl; intros; repeat msubst_simp; simp_hyps; eauto;
+  try solve [pose (rty_measure_gt_0 τ); lia].
+  - destruct τ; eauto; repeat msubst_simp; simp_hyps; sinvert Hm; eauto;
+  destruct τ1; eauto; repeat msubst_simp; simp_hyps; eauto; econstructor;
+  try solve [eapply H2; eauto; simpl in *; repeat msubst_simp; eauto; hauto].
+  - destruct τ; eauto; repeat msubst_simp; simp_hyps; sinvert Hm; eauto;
+  repeat msubst_simp; simp_hyps; eauto; econstructor; repeat msubst_simp;
+  try solve [auto_apply; eauto; simpl in *; repeat msubst_simp; eauto; hauto].
+  rewrite <- msubst_arrrty by eauto. apply H1; eauto. simpl in *. lia.
 Qed.
 
 Lemma is_coverage_rty_msubst: forall τ σ, closed_env σ -> is_coverage_rty (m{ σ } τ) <-> is_coverage_rty τ.
@@ -367,65 +390,31 @@ Proof.
   - erewrite <- is_coverage_rty_msubst in H0; eauto. repeat msubst_simp; simp_hyps; eauto.
 Qed.
 
-Ltac fine_rty_simp_aux :=
-  match goal with
-  | [H: context [ fine_rty (m{_} ?τ) ] |- _ ] => setoid_rewrite fine_rty_msubst in H
-  | [H: _ |- context [ fine_rty (m{_} ?τ) ] ] => setoid_rewrite fine_rty_msubst
-  | [H: context [ is_coverage_rty (m{_} ?τ) ] |- _ ] => setoid_rewrite is_coverage_rty_msubst in H
-  | [H: _ |- context [ is_coverage_rty (m{_} ?τ) ] ] => setoid_rewrite is_coverage_rty_msubst
-  (* | [H: context [ is_tm_rty (m{_} ?τ) ] |- _ ] => setoid_rewrite is_tm_rty_msubst in H *)
-  (* | [H: _ |- context [ is_tm_rty (m{_} ?τ) ] ] => setoid_rewrite is_tm_rty_msubst *)
-  (* | [H: context [ pure_rty (m{_} ?τ) ] |- _ ] => setoid_rewrite pure_rty_msubst in H *)
-  (* | [H: _ |- context [ pure_rty (m{_} ?τ) ] ] => setoid_rewrite pure_rty_msubst *)
-  end.
+(* Lemma closed_rty_base_flip: forall L b ϕ, closed_rty L {:b|ϕ} <-> closed_rty L [:b|ϕ].
+Proof.
+  split; intros; sinvert H; econstructor; eauto;
+  rewrite lc_base_flip in *; eauto.
+Qed. *)
 
-Ltac msubst_simp_tac :=
-  repeat (match goal with
+
+Ltac msubst_simp_tac_aux :=
+  match goal with
+          | [H: context [ stale (m{_} ?τ) ] |- _ ] => rewrite fv_of_msubst_closed in H by eauto
+          | [H: _ |- context [ stale (m{_} ?τ) ] ] => rewrite fv_of_msubst_closed by eauto
           | [H: context [ fine_rty (m{_} ?τ) ] |- _ ] => setoid_rewrite fine_rty_msubst in H
           | [H: _ |- context [ fine_rty (m{_} ?τ) ] ] => setoid_rewrite fine_rty_msubst
           | [H: context [ is_coverage_rty (m{_} ?τ) ] |- _ ] => setoid_rewrite is_coverage_rty_msubst in H
           | [H: _ |- context [ is_coverage_rty (m{_} ?τ) ] ] => setoid_rewrite is_coverage_rty_msubst
-          (* | [H: context [ is_tm_rty (m{_} ?τ) ] |- _ ] => setoid_rewrite is_tm_rty_msubst in H *)
-          (* | [H: _ |- context [ is_tm_rty (m{_} ?τ) ] ] => setoid_rewrite is_tm_rty_msubst *)
-          (* | [H: context [ pure_rty (m{_} ?τ) ] |- _ ] => setoid_rewrite pure_rty_msubst in H *)
-          (* | [H: _ |- context [ pure_rty (m{_} ?τ) ] ] => setoid_rewrite pure_rty_msubst *)
           | _ => msubst_simp
-          end).
+          end.
 
-(* Ltac fine_solver_aux :=
-  solve [repeat (match goal with
-                 | [ H: _ ⊢WF _ |- fine_rty _ ] =>
-                     apply closed_rty_fine in H; eauto; simpl in H;intuition; eauto
-                 end)].
+Ltac simp_tac_aux :=
+first [rtyR_regular_simp_aux | msubst_simp_tac_aux | lc_basic_typing_simp_aux | set_simp_aux |simplify_erase_aux1 ].
 
-Ltac fine_solver :=
-  match goal with
-  | [H: _ |- fine_rty _ ] => fine_solver_aux
-  end. *)
+Ltac simp_tac := repeat simp_tac_aux.
 
-(* Ltac basic_typing_simp :=
-  repeat match goal with
-    | [H: ?Γ ⊢ _ ⋮v _ |- ⌊?Γ⌋* ⊢ _ ⋮ _ ] => apply value_typing_regular_basic_typing in H; simpl in H
-    | [H: ?Γ ⊢ _ ⋮v _ |- ⌊?Γ⌋* ⊢ _ ⋮v _ ] => apply value_typing_regular_basic_typing in H; simpl in H
-    | [H: ?Γ ⊢ _ ⋮ _ |- ⌊?Γ⌋* ⊢ _ ⋮ _ ] => apply tm_typing_regular_basic_typing in H; simpl in H
-    | [H: ?Γ ⊢ _ ⋮ _ |- ⌊?Γ⌋* ⊢ _ ⋮v _ ] => apply tm_typing_regular_basic_typing in H; simpl in H
-    | [H: (_ ⊢ _ ⋮ _) |- (_ ⊢  _ ⋮ _) ] => apply tm_typing_regular_basic_typing in H
-    end. *)
-
-(* Ltac simp_tac :=
-  closed_simp; basic_typing_simp; msubst_erase_simp; basic_typing_regular_simp. *)
-
-(* Ltac closed_solver :=
-  match goal with
-  | [H: _ |- closed_rty _ ] => simp_tac
-  | [H: _ |- closed_env _ ] => simp_tac
-  end. *)
-
-(* Ltac lc_solver :=
-  match goal with
-  | [H: _ |- lc _] => simp_tac; lc_solver_plus
-  end. *)
-
-(* Ltac misc_solver :=
-  repeat msubst_simp;
-  try fine_solver; try ok_solver; try closed_solver; try lc_solver. *)
+Ltac misc_solver :=
+  simp_tac;
+  ln_simpl;
+  eauto;
+  try solve [try basic_typing_solver; try fine_rty_solver; try ok_solver; try lc_set_solver].

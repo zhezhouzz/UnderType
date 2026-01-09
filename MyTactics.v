@@ -403,6 +403,9 @@ Proof. fast_set_solver. Qed.
 Lemma setunion_empty_left: forall (s: aset), ∅ ∪ s = s.
 Proof. fast_set_solver. Qed.
 
+Lemma setunion_empty_right: forall (s: aset), s ∪ ∅ = s.
+Proof. fast_set_solver. Qed.
+
 Lemma subseteq_substract_both: forall (x: atom) (s1 s2: aset), x ∉ s1 -> x ∉ s2 -> {[x]} ∪ s1 ⊆ {[x]} ∪ s2 -> s1 ⊆ s2.
 Proof.
   intros.
@@ -463,6 +466,10 @@ Ltac my_set_simpl_aux :=
       setoid_rewrite setunion_empty_left in H
   | [ |- context [∅ ∪ ?d] ] =>
       setoid_rewrite setunion_empty_left
+  | [H: context [ ?s ∪ ∅ ] |- _ ] =>
+      setoid_rewrite setunion_empty_right in H
+  | [ |- context [ ?s ∪ ∅ ] ] =>
+      setoid_rewrite setunion_empty_right
   end.
 
 Ltac my_set_simpl :=

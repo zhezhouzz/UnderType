@@ -113,13 +113,18 @@ Proof.
   - apply rtyR_typed_closed in H. hauto.
 Qed.
 
+Ltac map_simpl :=
+match goal with
+  | [H: context [ ∅ ∪ _ ] |- _ ] => rewrite map_empty_union in H
+  | [|- context [ ∅ ∪ _ ] ] => rewrite map_empty_union
+  | [H: context [ _ ∪ ∅ ] |- _ ] => rewrite map_union_empty in H
+  | [|- context [ _ ∪ ∅ ] ] => rewrite map_union_empty
+  end.
+
 Lemma ctxEnv_domain Γ σ : ctxEnv Γ σ -> stale Γ = stale σ.
 Proof.
   induction 1; ln_simpl; eauto.
-  - autounfold with class_simpl. 
-    unfold listctx_stale.
-    unfold env_stale.
-  listctx_set_simpl.
+  - ln_simpl. autounfold with class_simpl. 
   set_solver.
 Qed.
 

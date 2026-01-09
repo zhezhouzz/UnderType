@@ -58,14 +58,14 @@ Qed.
 
 Class FvSubsetGamma (G E T: Type) `{staleG: Stale G} `{staleE: Stale E} `{Typing G E T} := fv_subset_gamma: forall (Γ: G) (e: E) (T: T), Γ ⊢ e ⋮ T -> staleE e ⊆ staleG Γ.
 
-#[global] Instance FvSubsetGamma_tm: FvSubsetGamma tyctx tm ty.
+#[global] Instance FvSubsetGamma_tm: FvSubsetGamma (amap ty) tm ty.
 Proof.
   unfold FvSubsetGamma.
   eapply basic_typing_contains_fv_tm; eauto.
 Qed.
 Arguments FvSubsetGamma_tm /.
 
-#[global] Instance FvSubsetGamma_value: FvSubsetGamma tyctx value ty.
+#[global] Instance FvSubsetGamma_value: FvSubsetGamma (amap ty) value ty.
 Proof.
   unfold FvSubsetGamma.
   eapply basic_typing_contains_fv_value; eauto.
@@ -102,14 +102,14 @@ Qed.
 
 Class TypingLc (G E T: Type) `{Lc E} `{Typing G E T}  := typing_lc: forall (Γ: G) (e: E) (T: T), Γ ⊢ e ⋮ T -> lc e.
 
-#[global] Instance TypingLc_tm: TypingLc tyctx tm ty.
+#[global] Instance TypingLc_tm: TypingLc (amap ty) tm ty.
 Proof.
   unfold TypingLc.
   eapply basic_typing_regular_tm; eauto.
 Qed.
 Arguments TypingLc_tm /.
 
-#[global] Instance TypingLc_value: TypingLc tyctx value ty.
+#[global] Instance TypingLc_value: TypingLc (amap ty) value ty.
 Proof.
   unfold TypingLc.
   eapply basic_typing_regular_value; eauto.
@@ -179,7 +179,7 @@ Proof.
       end.
 Qed.
 
-Class BasicTypingWeaken (E: Type) `{Typing tyctx E ty} := basic_typing_weaken: forall (Γ Γ': tyctx) (e: E) (T: ty), Γ ⊆ Γ' -> Γ ⊢ e ⋮ T -> Γ' ⊢ e ⋮ T.
+Class BasicTypingWeaken (E: Type) `{Typing (amap ty) E ty} := basic_typing_weaken: forall (Γ Γ': (amap ty)) (e: E) (T: ty), Γ ⊆ Γ' -> Γ ⊢ e ⋮ T -> Γ' ⊢ e ⋮ T.
 
 #[global] Instance BasicTypingWeaken_tm: BasicTypingWeaken tm.
 Proof.
@@ -195,7 +195,7 @@ Proof.
 Qed.
 Arguments BasicTypingWeaken_value /.
 
-Class BasicTypingWeakenInsert (E: Type) `{Typing tyctx E ty} := basic_typing_weaken_insert: forall (Γ: tyctx) (e: E) (T: ty) (x: atom) (U: ty), x # Γ -> Γ ⊢ e ⋮ T -> <[x := U]> Γ ⊢ e ⋮ T.
+Class BasicTypingWeakenInsert (E: Type) `{Typing (amap ty) E ty} := basic_typing_weaken_insert: forall (Γ: (amap ty)) (e: E) (T: ty) (x: atom) (U: ty), x # Γ -> Γ ⊢ e ⋮ T -> <[x := U]> Γ ⊢ e ⋮ T.
 
 #[global] Instance BasicTypingWeakenInsert_tm: BasicTypingWeakenInsert tm.
 Proof.
@@ -215,7 +215,7 @@ Arguments BasicTypingWeakenInsert_value /.
 
 (** * Substitution lemmas *)
 
-Class BasicTypingSubst (E: Type) `{Typing tyctx E ty} `{Subst value E} := basic_typing_subst: forall (Γ: tyctx) (z: atom) (u: value) (U: ty) (e: E) (T: ty), Γ ⊢ u ⋮ U -> <[z := U]> Γ ⊢ e ⋮ T -> Γ ⊢ {z := u} e ⋮ T.
+Class BasicTypingSubst (E: Type) `{Typing (amap ty) E ty} `{Subst value E} := basic_typing_subst: forall (Γ: (amap ty)) (z: atom) (u: value) (U: ty) (e: E) (T: ty), Γ ⊢ u ⋮ U -> <[z := U]> Γ ⊢ e ⋮ T -> Γ ⊢ {z := u} e ⋮ T.
 
 #[global] Instance BasicTypingSubst_tm: BasicTypingSubst tm.
 Proof.
@@ -227,7 +227,6 @@ Proof.
            (fun c e T _ => ∀ Γ, Γ ⊢ u ⋮ U → c = <[z:=U]> Γ → Γ ⊢ {z := u } e ⋮ T));
   (* [context] should be defined as a notation which helps resolving typeclass
   instances for, e.g., rewriting. *)
-    unfold tyctx;
     intros; subst; ln_simpl; simplify_map_eq; eauto; try auto_exists_L; intros x Hx; specialize_with x; eauto;
     ln_simpl;
     fold_syntax_class; 
@@ -254,7 +253,6 @@ Proof.
   apply (value_has_type_mutual_rec
            (fun c e T _ => ∀ Γ, Γ ⊢ u ⋮ U → c = <[z:=U]> Γ → Γ ⊢ {z := u } e ⋮ T)
            (fun c e T _ => ∀ Γ, Γ ⊢ u ⋮ U → c = <[z:=U]> Γ → Γ ⊢ {z := u } e ⋮ T));
-  unfold tyctx;
   intros; subst; ln_simpl; simplify_map_eq; eauto; try auto_exists_L; intros x Hx; specialize_with x; eauto;
   ln_simpl;
   fold_syntax_class; 
@@ -279,7 +277,7 @@ repeat match goal with
 | [H: lc ?e, H': context [{_ ~> _} ?e] |- _ ] => rewrite open_rec_lc in H' by eauto
 end.
 
-Class BasicTypingOpen (E: Type) `{Stale E} `{Typing tyctx E ty} `{Open value E} := basic_typing_open: forall (Γ: tyctx) (z: atom) (u: value) (U: ty) (e: E) (T: ty), z # e -> Γ ⊢ u ⋮ U -> <[z := U]> Γ ⊢ e ^^ (vfvar z) ⋮ T -> Γ ⊢ e ^^ u ⋮ T.
+Class BasicTypingOpen (E: Type) `{Stale E} `{Typing (amap ty) E ty} `{Open value E} := basic_typing_open: forall (Γ: (amap ty)) (z: atom) (u: value) (U: ty) (e: E) (T: ty), z # e -> Γ ⊢ u ⋮ U -> <[z := U]> Γ ⊢ e ^^ (vfvar z) ⋮ T -> Γ ⊢ e ^^ u ⋮ T.
 
 #[global] Instance BasicTypingOpen_tm: BasicTypingOpen tm.
 Proof.
@@ -301,7 +299,7 @@ Arguments BasicTypingOpen_value /.
 
 (** * Type uniqueness lemmas *)
 
-Class BasicTypingUnique (E: Type) `{Typing tyctx E ty} := basic_typing_unique: forall (Γ: tyctx) (e: E) (T1 T2: ty), Γ ⊢ e ⋮ T1 -> Γ ⊢ e ⋮ T2 -> T1 = T2.
+Class BasicTypingUnique (E: Type) `{Typing (amap ty) E ty} := basic_typing_unique: forall (Γ: (amap ty)) (e: E) (T1 T2: ty), Γ ⊢ e ⋮ T1 -> Γ ⊢ e ⋮ T2 -> T1 = T2.
 
 #[global] Instance BasicTypingUnique_tm: BasicTypingUnique tm.
 Proof.
@@ -380,7 +378,7 @@ with basic_typing_strengthen_value: forall Γ x Tx (v: value) T,
 Proof.
   all : intros * H Hfresh; remember (<[x:=Tx]>Γ);
     generalize dependent Γ;
-    destruct H; intros; unfold tyctx in *; subst.
+    destruct H; intros; subst.
     econstructor_L; ln_simpl; fold_typing_class.
     all:
       econstructor_L; auto_specialization; ln_simpl; fold_typing_class;
@@ -392,7 +390,7 @@ Proof.
       end.
 Qed.
 
-Class BasicTypingStrengthen (E: Type) `{Typing tyctx E ty} `{Stale E} := basic_typing_strengthen: forall (Γ: tyctx) (x: atom) (Tx: ty) (e: E) (T: ty), (<[x:=Tx]>Γ) ⊢ e ⋮ T -> x # e -> Γ ⊢ e ⋮ T.
+Class BasicTypingStrengthen (E: Type) `{Typing (amap ty) E ty} `{Stale E} := basic_typing_strengthen: forall (Γ: (amap ty)) (x: atom) (Tx: ty) (e: E) (T: ty), (<[x:=Tx]>Γ) ⊢ e ⋮ T -> x # e -> Γ ⊢ e ⋮ T.
 
 #[global] Instance BasicTypingStrengthen_tm: BasicTypingStrengthen tm.
 Proof.
@@ -423,6 +421,16 @@ Ltac auto_specialization :=
 Ltac L_econstructor_specialized :=
   econstructor_L; auto_specialization; ln_simpl.
 
+Lemma value_of_op_regular_basic_typing op:
+  ∅ ⊢ value_of_op op ⋮ ty_of_op op.
+Proof.
+  econstructor.
+  simpl. instantiate (1:=∅). intros.
+  econstructor. econstructor. simplify_map_eq. reflexivity. reflexivity.
+  instantiate_atom_listctx.
+  simpl. econstructor. econstructor. simplify_map_eq. reflexivity.
+Qed.
+
 Ltac basic_typing_solver :=
 fold_typing_class;
 repeat
@@ -434,6 +442,10 @@ repeat
      assert (T = T') by eauto using basic_typing_unique; subst
 | [H: ∅ ⊢ ?e ⋮ _ |- _ ⊢ ?e ⋮ _ ] =>
   eapply basic_typing_weaken in H; eauto; try lc_set_solver
+| [|- _ ⊢ value_of_op ?op ⋮ _ ] =>
+  let Hop := fresh "Hop" in
+  pose proof (value_of_op_regular_basic_typing op) as Hop;
+  eapply basic_typing_weaken in Hop; eauto; try lc_set_solver
 | [H: ?Γ ⊢ ?e ⋮ _ |- <[ _ := _ ]> ?Γ ⊢ ?e ⋮ _ ] =>
   apply basic_typing_weaken_insert; eauto; lc_set_solver
 | [H: <[ _ := _ ]> ?Γ ⊢ ?e ⋮ _ |-  ?Γ ⊢ ?e ⋮ _ ] =>
@@ -518,7 +530,6 @@ Proof.
     basic_typing_solver.
     apply eval_op_typing in H10; simp_hyps. 
     rewrite H4 in H0. simp_hyps.
-    unfold tyctx in *;
     basic_typing_solver.
   - sinvert H; ln_simpl.
     auto_pose_fv x; repeat specialize_with x.

@@ -3,7 +3,7 @@ From CT Require Import BaseDef ListCtx .
 From CT.Syntax Require Export Lang Qualifier RefinementType BasicTyping Instantiation.
 
 Hint Unfold listctx_stale: class_simpl.
-Hint Unfold env_stale: class_simpl.
+(* Hint Unfold env_stale: class_simpl. *)
 
 Ltac fold_syntax_class :=
   (* NOTE:
@@ -60,9 +60,21 @@ Ltac fold_syntax_class :=
   change (close_value_instance ?x ?k ?e) with ({k <~ x} e) in *;
   change (close_tm_instance ?x ?k ?e) with ({k <~ x} e) in *.
 
+Ltac my_map_simpl_aux :=
+  match goal with
+  | [H: context [ ∅ ∪ _ ] |- _ ] => rewrite map_empty_union in H
+  | [|- context [ ∅ ∪ _ ] ] => rewrite map_empty_union
+  | [H: context [ _ ∪ ∅ ] |- _ ] => rewrite map_union_empty in H
+  | [|- context [ _ ∪ ∅ ] ] => rewrite map_union_empty
+  end.
+
+Ltac my_map_simpl :=
+  repeat my_map_simpl_aux.
+
 Ltac ln_simpl :=
   autounfold with class_simpl in *; simpl in *; MyTactics.mydestr;
   MyTactics.my_set_simpl;
+  my_map_simpl;
   listctx_set_simpl;
   simplify_map_eq;
   do 3 fold_syntax_class.

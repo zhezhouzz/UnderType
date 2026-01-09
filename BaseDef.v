@@ -40,6 +40,9 @@ Arguments atom_stale /.
 #[global]
 Instance aset_stale : Stale aset := id.
 Arguments aset_stale /.
+#[global]
+Instance amap_stale {A} : Stale (amap A) := dom.
+Arguments amap_stale /.
 
 Notation "x # s" := (x ∉ stale s) (at level 40).
 
@@ -69,4 +72,4 @@ Class Denotation (A: Type) (B: Type) := denote: A -> B.
 
 Notation "'⟦' τ '⟧' " := (denote τ) (at level 20, format "⟦ τ ⟧", τ constr).
 
-Hint Unfold open close subst stale lc has_type denote: class_simpl.
+Hint Unfold open close subst stale lc has_type denote amap_stale: class_simpl.

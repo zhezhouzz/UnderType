@@ -280,7 +280,7 @@ Proof.
     eapply basic_typing_strengthen_tm; eauto; my_set_solver.
 Qed.
 
-Class RefinementTypingRegularBasicTyping (E: Type) `{Typing tyctx E ty} `{TypingRefinement (listctx rty) E rty} := refinement_typing_regular_basic_typing: forall (Γ: listctx rty) (e: E) (T: rty), Γ ⊢r e ⋮ T -> ⌊ Γ ⌋* ⊢ e ⋮ ⌊ T ⌋.
+Class RefinementTypingRegularBasicTyping (E: Type) `{Typing (amap ty) E ty} `{TypingRefinement (listctx rty) E rty} := refinement_typing_regular_basic_typing: forall (Γ: listctx rty) (e: E) (T: rty), Γ ⊢r e ⋮ T -> ⌊ Γ ⌋* ⊢ e ⋮ ⌊ T ⌋.
 
 #[global] Instance RefinementTypingRegularBasicTyping_value: RefinementTypingRegularBasicTyping value.
 Proof.
@@ -296,7 +296,7 @@ Qed.
 
 Class RefinementTypingRegular (E: Type) 
 `{Stale E}
-`{Typing tyctx E ty} `{TypingRefinement (listctx rty) E rty} `{RefinementTypingRegularBasicTyping E} := refinement_typing_regular: forall (Γ: listctx rty) (e: E) (T: rty), Γ ⊢r e ⋮ T -> 
+`{Typing (amap ty) E ty} `{TypingRefinement (listctx rty) E rty} `{RefinementTypingRegularBasicTyping E} := refinement_typing_regular: forall (Γ: listctx rty) (e: E) (T: rty), Γ ⊢r e ⋮ T -> 
 ⌊ Γ ⌋* ⊢ e ⋮ ⌊ T ⌋ /\ Γ ⊢WF T.
 
 #[global] Instance RefinementTypingRegular_value: RefinementTypingRegular value.
@@ -314,11 +314,6 @@ Proof.
   - apply refinement_typing_regular_basic_typing; eauto.
   - apply tm_typing_regular_wf in H; eauto.
 Qed.
-
-(** Convert an event operator to a value:
-  [op] is [fun x => leteffop y = op x in y] *)
-Definition value_of_op op : value :=
-  vlam TNat (tleteffop op (vbvar 0) (treturn (vbvar 0))).
 
 (** Well-formed built-in operator typing context (Definition 4.7) *)
 (* We simply treat the event operator as a value. This is equivalent to the
