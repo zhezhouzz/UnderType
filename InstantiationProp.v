@@ -210,12 +210,28 @@ Ltac rtyR_regular_simp_aux :=
      | [H: ok_ctx _ |- _ ⊆ _ ] => apply ok_ctx_regular in H; simp_hyp H; eauto
      | [H: ok_ctx _ |- fine_rty _ ] => apply ok_ctx_regular in H; simp_hyp H; eauto
      | [H: ok_ctx _ |- stale _ = _ ] => apply ok_ctx_regular in H; simp_hyp H; eauto
-     | [H: ok_ctx _ |- _ !! _ = _ ] => apply ok_ctx_regular in H; simp_hyp H; eauto
-     | [H: ⟦ _ ⟧ _  |- lc _ ] => apply rtyR_regular in H; simp_hyp H
-     | [H: ⟦ _ ⟧ _  |- _ ⊆ _ ] => apply rtyR_regular in H; eauto; simp_hyp H
-     | [H: ⟦ _ ⟧ _  |- stale _ = _ ] => apply rtyR_regular in H; eauto; simp_hyp H
-     | [H: ⟦ _ ⟧ _  |- _ !! _ = _ ] => apply rtyR_regular in H; eauto; simp_hyp H
-     | [H: ⟦ _ ⟧ _  |- _ # _ ] => apply rtyR_regular in H; eauto; simp_hyp H
+     | [H: ⟦ _ ⟧ _  |- lc _ ] => 
+       try apply rtyR_regular in H; try apply ctxEnv_regular in H; simp_hyp H
+     | [H: ⟦ _ ⟧ _  |- _ ⊆ _ ] => 
+       try apply rtyR_regular in H; try apply ctxEnv_regular in H; eauto; simp_hyp H
+     | [H: ⟦ _ ⟧ _  |- stale _ = _ ] => 
+       try apply rtyR_regular in H; try apply ctxEnv_regular in H; eauto; simp_hyp H
+     | [H: ⟦ _ ⟧ _  |- _ !! _ = _ ] => 
+       try apply rtyR_regular in H; try apply ctxEnv_regular in H; eauto; simp_hyp H
+     | [H: ⟦ _ ⟧ _  |- ok_ctx _ ] => 
+       try apply rtyR_regular in H; try apply ctxEnv_regular in H; eauto; simp_hyp H
+     | [H: ⟦ _ ⟧ _  |- _ ∉ _ ] => 
+       try apply rtyR_regular in H; try apply ctxEnv_regular in H; eauto; simp_hyp H
+     | [H: ⟦ _ ⟧ _  |- _ ⊆ _ ] => 
+       try apply rtyR_regular in H; try apply ctxEnv_regular in H; eauto; simp_hyp H
+     | [H: ⟦ _ ⟧ _  |- stale _ = _ ] => 
+       try apply rtyR_regular in H; try apply ctxEnv_regular in H; eauto; simp_hyp H
+     | [H: ⟦ _ ⟧ _  |- _ # _ ] => 
+       try apply rtyR_regular in H; try apply ctxEnv_regular in H; eauto; simp_hyp H
+     | [H: ⟦ _ ⟧ _  |- closed_env _ ] => 
+       try apply rtyR_regular in H; try apply ctxEnv_regular in H; eauto; simp_hyp H
+     | [H: ⟦ _ ⟧ _  |- ok_ctx _ ] => 
+       try apply rtyR_regular in H; try apply ctxEnv_regular in H; eauto; simp_hyp H
      | [H: ⟦ _ ⟧ _  |- _ ⊢ _ ⋮ _ ] => apply rtyR_typed_closed in H; simp_hyp H
      end.
 

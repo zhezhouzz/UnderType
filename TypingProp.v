@@ -1,26 +1,11 @@
 From stdpp Require Import mapset.
-From CT Require Import CoreLangProp.
-From CT Require Import OperationalSemantics.
-From CT Require Import BasicTypingProp.
-From CT Require Import RefinementTypeProp.
-From CT Require Import DenotationProp.
-From CT Require Import InstantiationProp.
-From CT Require Import Typing.
+From stdpp Require Import natmap.
+From Stdlib.Program Require Import Wf.
+From CT Require Import Syntax Lc OperationalSemantics BasicTypingProp Denotation InstantiationProp DenotationProp.
 
-Import Atom.
-Import CoreLang.
-Import Tactics.
-Import NamelessTactics.
-Import ListCtx.
-Import OperationalSemantics.
-Import BasicTyping.
-Import Qualifier.
-Import RefinementType.
-Import Denotation.
-Import Instantiation.
-Import Typing.
+Import BaseDef Lang MyTactics Primitives OperationalSemantics BasicTyping Qualifier RefinementType Instantiation ListCtx List LangLc Lc QualifierLc Denotation InstantiationProp DenotationProp.
 
-Ltac closed_simp :=
+(* Ltac closed_simp :=
   (repeat match goal with
      | [H: ⟦ _ ⟧ _ |- closed_rty _ _ ] => apply rtyR_typed_closed in H; simp_hyp H
      (* | [H: ctxRst _ ?Γv |- closed_env ?Γv] => eapply ctxRst_closed_env; eauto *)
@@ -33,7 +18,7 @@ Ltac closed_simp :=
          rewrite msubst_fresh_rty by solve [sinvert H; set_solver]
      | [H: closed_rty ∅ ?τ, H': context [ (m{ _ }r) ?τ] |- _ ] =>
          rewrite msubst_fresh_rty in H' by solve [sinvert H; set_solver]
-     end); repeat msubst_simp.
+     end); repeat msubst_simp. *)
 
 (* Ltac finerty_destruct τ := *)
 (*   destruct τ; repeat msubst_simp; *)

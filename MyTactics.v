@@ -462,6 +462,7 @@ Ltac mmy_set_solver2 :=
 Ltac my_set_simpl_aux :=
   match goal with
   | [ |- _ !! _ = None ] => rewrite <- not_elem_of_dom
+  | [H: stale _ = ∅ |- _ ] => rewrite H in *; clear H
   | [H: context [∅ ∪ ?d] |- _ ] =>
       setoid_rewrite setunion_empty_left in H
   | [ |- context [∅ ∪ ?d] ] =>
@@ -475,7 +476,19 @@ Ltac my_set_simpl_aux :=
 Ltac my_set_simpl :=
   repeat my_set_simpl_aux.
 
+Ltac my_map_simpl_aux :=
+  match goal with
+  | [H: context [ ∅ ∪ _ ] |- _ ] => rewrite map_empty_union in H
+  | [|- context [ ∅ ∪ _ ] ] => rewrite map_empty_union
+  | [H: context [ _ ∪ ∅ ] |- _ ] => rewrite map_union_empty in H
+  | [|- context [ _ ∪ ∅ ] ] => rewrite map_union_empty
+  end.
+
+Ltac my_map_simpl :=
+  repeat my_map_simpl_aux.
+
 Ltac my_set_solver :=
+my_map_simpl;
 my_set_simpl; eauto;
     (mmy_set_solver2 || fast_set_solver!! || set_solver).
 

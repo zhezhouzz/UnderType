@@ -14,8 +14,11 @@ Import BaseDef Lang MyTactics Primitives OperationalSemantics BasicTyping Qualif
 
 (** Well-formedness (Fig. 5) *)
 
+Definition well_formed_typing_ctx (Γ: listctx rty) : Prop :=
+  exists σ, ⟦ Γ ⟧ σ.
 
-Notation " Γ '⊢WF' τ " := (lc τ /\ stale τ ⊆ stale Γ /\ is_coverage_rty τ) (at level 20, τ constr, Γ constr).
+
+Notation " Γ '⊢WF' τ " := (lc τ /\ stale τ ⊆ stale Γ /\ is_coverage_rty τ /\ well_formed_typing_ctx Γ) (at level 20, τ constr, Γ constr).
 
 (** Semantic subtyping *)
 (* Instead of the syntactic subtyping relation presented in the paper, we use
@@ -29,7 +32,9 @@ semantic subtyping in the mechanization. *)
 
 Definition subtyping (Γ: listctx rty) (ρ1 ρ2: rty) : Prop :=
       (* Assume [ρ1] and [ρ2] are valid [rty]s. *)
-      ⌊ ρ1 ⌋ = ⌊ ρ2 ⌋ /\ 
+      ⌊ ρ1 ⌋ = ⌊ ρ2 ⌋ /\
+      stale ρ1 ⊆ stale Γ /\
+      stale ρ2 ⊆ stale Γ /\
       (is_coverage_rty ρ1 <-> is_coverage_rty ρ2) /\
         forall (σ2: env), ⟦ Γ ⟧ σ2 ->
         exists (σ1: env), ⟦ Γ ⟧ σ1 /\ 

@@ -54,7 +54,7 @@ Proof.
     basic_typing_solver.
 Qed.
 
-Lemma ctxRst_ctxfind Γ σ x ρ :
+Lemma ctxEnv_ctxfind Γ σ x ρ :
   ctxEnv Γ σ ->
   ctxfind Γ x = Some ρ ->
   (* fine_rty ρ -> *)
