@@ -34,6 +34,12 @@ Proof. intros. apply app_eq_unit in H. sauto. Qed.
 Ltac list_app_simpl_aux1 :=
   match goal with
     | [a: prod _ _ |- _] => destruct a
+    | [H: [_] = [] |- _ ] => sinvert H
+    | [H: [] = [_] |- _ ] => sinvert H
+    | [H: [] = ?l1 ++ [_] |- _ ] =>
+      apply app_cons_not_nil in H; sinvert H 
+    | [H: ?l1 ++ ?l2 = [] |- _ ] =>
+      rewrite (app_nil l1 l2) in H; simp_hyp H; subst
     | [H: ?Γ1 ++ [(?x1, ?t1)] = ?Γ2 ++ [(?x2, ?t2)] |- _ ] => apply app_inj_tail in H; destruct H; subst
     | [H: (?x1, ?t1) = (?x2, ?t2) |- _ ] => inversion H; subst; clear H
     | [H: context [ ?a ++ []] |- _ ] => rewrite app_nil_r in H

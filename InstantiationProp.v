@@ -425,7 +425,12 @@ Ltac msubst_simp_tac_aux :=
           end.
 
 Ltac simp_tac_aux :=
-first [rtyR_regular_simp_aux | msubst_simp_tac_aux | lc_basic_typing_simp_aux | set_simp_aux |simplify_erase_aux1 ].
+match goal with
+| [|- closed_env _ ] =>
+first [rtyR_regular_simp_aux | lc_basic_typing_simp_aux | set_simp_aux | simplify_erase_aux1 ]
+| _ =>
+first [rtyR_regular_simp_aux | msubst_simp_tac_aux | lc_basic_typing_simp_aux | set_simp_aux |simplify_erase_aux1 ]
+end.
 
 Ltac simp_tac := repeat simp_tac_aux.
 

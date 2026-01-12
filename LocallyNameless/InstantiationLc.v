@@ -386,59 +386,59 @@ Qed.
 
 Ltac subst_simp :=
   match goal with
-  | |- context [ {_:=_} (flip_rty _) ] => rewrite flip_rty_subst; eauto
-  | H: context [ {_:=_} (flip_rty _) ] |- _ => rewrite flip_rty_subst in H; eauto
-  | |- context [ stale (flip_rty _) ] => rewrite flip_rty_stale; eauto
-  | H: context [ stale (flip_rty _) ] |- _ => rewrite flip_rty_stale in H; eauto
-  | |- context [ ({_ ~> _} (flip_rty _)) ] => rewrite flip_rty_open; eauto
-  | H: context [ ({_ ~> _} (flip_rty _)) ] |- _ => rewrite flip_rty_open in H; eauto
+  | |- context [ {_:=_} (flip_rty _) ] => rewrite flip_rty_subst by eauto
+  | H: context [ {_:=_} (flip_rty _) ] |- _ => rewrite flip_rty_subst in H by eauto
+  | |- context [ stale (flip_rty _) ] => rewrite flip_rty_stale by eauto
+  | H: context [ stale (flip_rty _) ] |- _ => rewrite flip_rty_stale in H by eauto
+  | |- context [ ({_ ~> _} (flip_rty _)) ] => rewrite flip_rty_open by eauto
+  | H: context [ ({_ ~> _} (flip_rty _)) ] |- _ => rewrite flip_rty_open in H by eauto
   end.
 
 Ltac msubst_simp :=
   match goal with
-  | |- context [ m{∅} _ ] => rewrite msubst_empty
-  | H: context [ m{∅} _ ] |- _ => rewrite msubst_empty in H
-  | H: context [ m{ _ } (tlete _ _) ] |- _ => rewrite msubst_lete in H
-  | |- context [ m{ _ } (tlete _ _) ] => rewrite msubst_lete
-  | H: context [ m{ _ } (tleteffop _ _ _) ] |- _ => rewrite msubst_tleteffop in H
-  | |- context [ m{ _ } (tleteffop _ _ _) ] => rewrite msubst_tleteffop
-  | H: context [ m{ _ } (tletapp _ _ _) ] |- _ => rewrite msubst_tletapp in H
-  | |- context [ m{ _ } (tletapp _ _ _) ] => rewrite msubst_tletapp
-  | H: context [ m{ _ } (vfix _ _) ] |- _ => rewrite msubst_fix in H
-  | |- context [ m{ _ } (vfix _ _) ] => rewrite msubst_fix
-  | H: context [ m{ _ } (treturn _) ] |- _ => rewrite msubst_value in H
-  | |- context [ m{ _ } (treturn _) ] => rewrite msubst_value
-  | H: context [ m{ _ } (vlam _ _) ] |- _ => rewrite msubst_lam in H
-  | |- context [ m{ _ } (vlam _ _) ] => rewrite msubst_lam
-  | H: context [ m{ _ } (terr _) ] |- _ => rewrite msubst_err in H
-  | |- context [ m{ _ } (terr _) ] => rewrite msubst_err
-  | H: context [ m{ _ } (tmatchb _ _ _) ] |- _ => rewrite msubst_match in H
-  | |- context [ m{ _ } (tmatchb _ _ _) ] => rewrite msubst_match
-  | H: context [ m{ _ } (vbvar _) ] |- _ => rewrite msubst_bvar in H
-  | |- context [ m{ _ } (vbvar _) ] => rewrite msubst_bvar
-  | H: context [ m{ _ } (vfvar _) ] |- _ => rewrite msubst_fvar in H
-  | |- context [ m{ _ } (vfvar _) ] => rewrite msubst_fvar
-  | H: context [ m{ _ } (vconst _) ] |- _ => rewrite msubst_constant in H
-  | |- context [ m{ _ } (vconst _) ] => rewrite msubst_constant
+  | |- context [ m{∅} _ ] => rewrite msubst_empty by eauto
+  | H: context [ m{∅} _ ] |- _ => rewrite msubst_empty in H by eauto
+  | H: context [ m{ _ } (tlete _ _) ] |- _ => rewrite msubst_lete in H by eauto
+  | |- context [ m{ _ } (tlete _ _) ] => rewrite msubst_lete by eauto
+  | H: context [ m{ _ } (tleteffop _ _ _) ] |- _ => rewrite msubst_tleteffop in H by eauto
+  | |- context [ m{ _ } (tleteffop _ _ _) ] => rewrite msubst_tleteffop by eauto
+  | H: context [ m{ _ } (tletapp _ _ _) ] |- _ => rewrite msubst_tletapp in H by eauto
+  | |- context [ m{ _ } (tletapp _ _ _) ] => rewrite msubst_tletapp by eauto
+  | H: context [ m{ _ } (vfix _ _) ] |- _ => rewrite msubst_fix in H by eauto
+  | |- context [ m{ _ } (vfix _ _) ] => rewrite msubst_fix by eauto
+  | H: context [ m{ _ } (treturn _) ] |- _ => rewrite msubst_value in H by eauto
+  | |- context [ m{ _ } (treturn _) ] => rewrite msubst_value by eauto
+  | H: context [ m{ _ } (vlam _ _) ] |- _ => rewrite msubst_lam in H by eauto
+  | |- context [ m{ _ } (vlam _ _) ] => rewrite msubst_lam by eauto
+  | H: context [ m{ _ } (terr _) ] |- _ => rewrite msubst_err in H by eauto
+  | |- context [ m{ _ } (terr _) ] => rewrite msubst_err by eauto
+  | H: context [ m{ _ } (tmatchb _ _ _) ] |- _ => rewrite msubst_match in H by eauto
+  | |- context [ m{ _ } (tmatchb _ _ _) ] => rewrite msubst_match by eauto
+  | H: context [ m{ _ } (vbvar _) ] |- _ => rewrite msubst_bvar in H by eauto
+  | |- context [ m{ _ } (vbvar _) ] => rewrite msubst_bvar by eauto
+  | H: context [ m{ _ } (vfvar _) ] |- _ => rewrite msubst_fvar in H by eauto
+  | |- context [ m{ _ } (vfvar _) ] => rewrite msubst_fvar by eauto
+  | H: context [ m{ _ } (vconst _) ] |- _ => rewrite msubst_constant in H by eauto
+  | |- context [ m{ _ } (vconst _) ] => rewrite msubst_constant by eauto
   (* NOTE: don't unfold qualifier definition *)
   (* | H: context [ m{ _ } _ ] |- _ => rewrite msubst_qualifier in H *)
   (* | |- context [ m{ _ } _ ] => rewrite msubst_qualifier *)
-  | H: context [ m{ _ } (_ & _) ] |- _ => rewrite msubst_qualifier_and in H
-  | |- context [ m{ _ } (_ & _) ] => rewrite msubst_qualifier_and
-  | H: context [ m{ _ } {: _ | _ } ] |- _ => rewrite msubst_overrty in H
-  | |- context [ m{ _ } {: _ | _ } ] => rewrite msubst_overrty
-  | H: context [ m{ _ } [: _ | _ ] ] |- _ => rewrite msubst_underrty in H
-  | |- context [ m{ _ } [: _ | _ ] ] => rewrite msubst_underrty
-  | H: context [ m{ _ } (_ ⇨ _) ] |- _ => rewrite msubst_arrrty in H
-  | |- context [ m{ _ } (_ ⇨ _ ) ] => rewrite msubst_arrrty
-  | H: context [ m{ _ } (mk_top _) ] |- _ => rewrite msubst_mk_top in H
-  | |- context [ m{ _ } (mk_top _) ] => rewrite msubst_mk_top
-  | H: context [ m{ _ } (mk_eq_constant _) ] |- _ => rewrite msubst_mk_eq_constant in H
-  | |- context [ m{ _ } (mk_eq_constant _) ] => rewrite msubst_mk_eq_constant
-  | H: context [ m{ _ } (flip_rty _) ] |- _ => rewrite msubst_flip_rty in H
-  | |- context [ m{ _ } (flip_rty _) ] => rewrite msubst_flip_rty
-  | H: context [ m{ _ } (mk_eq_var _ ?x) ], H': _ !! ?x = Some ?v |- _ => rewrite msubst_mk_eq_var with (v:=v) in H
-  | H': _ !! ?x = Some ?v |- context [ m{ _ } (mk_eq_var _ ?x) ] => rewrite msubst_mk_eq_var with (v:=v)
+  | H: context [ m{ _ } (_ & _) ] |- _ => rewrite msubst_qualifier_and in H by eauto
+  | |- context [ m{ _ } (_ & _) ] => rewrite msubst_qualifier_and by eauto
+  | H: context [ m{ _ } {: _ | _ } ] |- _ => rewrite msubst_overrty in H by eauto
+  | |- context [ m{ _ } {: _ | _ } ] => rewrite msubst_overrty by eauto
+  | H: context [ m{ _ } [: _ | _ ] ] |- _ => rewrite msubst_underrty in H by eauto
+  | |- context [ m{ _ } [: _ | _ ] ] => rewrite msubst_underrty by eauto
+  | H: context [ m{ _ } (_ ⇨ _) ] |- _ => rewrite msubst_arrrty in H by eauto
+  | |- context [ m{ _ } (_ ⇨ _ ) ] => rewrite msubst_arrrty by eauto
+  | H: context [ m{ _ } (mk_top _) ] |- _ => rewrite msubst_mk_top in H by eauto
+  | |- context [ m{ _ } (mk_top _) ] => rewrite msubst_mk_top by eauto
+  | H: context [ m{ _ } (mk_eq_constant _) ] |- _ => rewrite msubst_mk_eq_constant in H by eauto
+  | |- context [ m{ _ } (mk_eq_constant _) ] => rewrite msubst_mk_eq_constant by eauto
+  | H: context [ m{ _ } (flip_rty _) ] |- _ => rewrite msubst_flip_rty in H by eauto
+  | |- context [ m{ _ } (flip_rty _) ] => rewrite msubst_flip_rty by eauto
+  | H: context [ m{ _ } (mk_eq_var _ ?x) ], H': _ !! ?x = Some ?v |- _ => rewrite msubst_mk_eq_var with (v:=v) in H by eauto
+  | H': _ !! ?x = Some ?v |- context [ m{ _ } (mk_eq_var _ ?x) ] => rewrite msubst_mk_eq_var with (v:=v) by eauto
   | _ => subst_simp
   end; eauto.
 
@@ -770,9 +770,7 @@ Proof.
   msubst_tac.
   - rewrite map_fold_empty. my_set_solver.
   - rewrite fv_of_subst_closedA.
-    + setoid_rewrite H5. ln_simpl.
-      autounfold with class_simpl. 
-      rewrite dom_insert_L. my_set_solver.
+    + setoid_rewrite H5. my_set_solver.
     + hauto.
 Qed.
 
@@ -794,4 +792,127 @@ Qed.
 #[global] Instance FvOfMsubstClosed_rty: FvOfMsubstClosed rty.
 Proof.
   eapply FvOfMsubstClosed_all; typeclasses eauto.
+Qed.
+
+Ltac rewrite_msubst_insert_in H :=
+  cbn in H; 
+  change (map_fold ?s ?e ?m) with (@msubst m _ e s) in H;
+  rewrite !msubst_insert in H;
+  eauto using subst_commute.
+
+Class MsubstUnion (A: Type) `{Stale A} `{Subst value A} := msubst_union :
+forall (σ: env) (e: A),
+closed_env (σ) ->
+forall (σ1 σ2: env), 
+σ1 ∪ σ2 = σ ->
+dom σ1 ∩ dom σ2 = ∅ ->
+m{σ1 ∪ σ2} e = m{σ1} (m{σ2} e).
+
+Lemma elem_of_dom_implies_in_union (A: Type) (x: atom) (v: A) (σ: amap A):
+σ !! x = Some v -> x ∈ dom σ.
+Proof.
+  intros.
+  rewrite elem_of_dom. exists v. eauto.
+Qed.
+
+Lemma MsubstUnion_all
+(A: Type) 
+(staleA: Stale A) 
+(substA: Subst value A)
+(subst_commuteA: @SubstCommute A staleA substA)
+: @MsubstUnion A staleA substA.
+Proof.
+  unfold MsubstUnion. intros. unfold msubst.
+  apply map_fold_union_strong.
+  - constructor; eauto.
+    intros x y z Hxy Hyz; subst; eauto.
+  - intros. unfold Proper, respectful.
+    intros a a0 Ha. subst. reflexivity.
+  - intros.
+    apply elem_of_dom_implies_in_union in H2, H3.
+    my_set_solver.
+  - intros.
+    rewrite <- H0 in H.
+    apply map_Forall_union in H.
+    mydestr. 
+    destruct H3, H4;
+    eapply map_Forall_lookup_1 in H3; eauto;
+    eapply map_Forall_lookup_1 in H4; eauto;
+    simpl in *;
+    rewrite subst_commuteA; eauto; my_set_solver.
+    rewrite map_disjoint_dom. my_set_solver.
+Qed.
+
+#[global] Instance MsubstUnion_tm: MsubstUnion tm.
+Proof.
+  eapply MsubstUnion_all; typeclasses eauto.
+Qed.
+
+#[global] Instance MsubstUnion_value: MsubstUnion value.
+Proof.
+  eapply MsubstUnion_all; typeclasses eauto.
+Qed.
+
+#[global] Instance MsubstUnion_qualifier: MsubstUnion qualifier.
+Proof.
+  eapply MsubstUnion_all; typeclasses eauto.
+Qed.
+
+#[global] Instance MsubstUnion_rty: MsubstUnion rty.
+Proof.
+  eapply MsubstUnion_all; typeclasses eauto.
+Qed.
+
+Class MsubstFilterSame (A: Type) `{Stale A} `{Subst value A} := msubst_filter_same :
+forall (σ1 σ2: env) (L: aset),
+closed_env σ1 ->
+closed_env σ2 ->
+[D L ] σ1 = [D L ] σ2 -> 
+forall (e: A), stale e ⊆ L -> m{σ1} e = m{σ2} e.
+
+Lemma MsubstFilterSame_all
+(A: Type) 
+(staleA: Stale A) 
+(substA: Subst value A) 
+(msubst_freshA: @MsubstFresh A staleA substA)
+(msubst_unionA: @MsubstUnion A staleA substA)
+: @MsubstFilterSame A staleA substA.
+Proof.
+  unfold MsubstFilterSame.
+  intros σ1 σ2 L Hclosed1 Hclosed2 H e Hstale.
+  rewrite (restrict_keys_split L σ1).
+  rewrite (restrict_keys_split L σ2).
+  pose proof (restrict_keys_union_compl L σ1) as Hunion1.
+  pose proof (restrict_keys_union_compl L σ2) as Hunion2.
+  eapply msubst_unionA in Hunion1.
+  rewrite Hunion1.
+  eapply msubst_unionA in Hunion2.
+  rewrite Hunion2.
+  rewrite H.
+  f_equal.
+  rewrite msubst_freshA.
+  rewrite msubst_freshA. eauto.
+  all: fold_syntax_class;
+       try rewrite stale_restrict_keys_compl;
+       try rewrite stale_restrict_keys; eauto; my_set_solver.
+Qed.
+
+#[global] Instance MsubstFilterSame_tm: MsubstFilterSame tm.
+Proof.
+  eapply MsubstFilterSame_all; typeclasses eauto.
+Qed.
+
+#[global] Instance MsubstFilterSame_value: MsubstFilterSame value.
+Proof.
+  eapply MsubstFilterSame_all; typeclasses eauto.
+Qed.
+
+#[global] Instance MsubstFilterSame_qualifier: MsubstFilterSame qualifier.
+Proof.
+  eapply MsubstFilterSame_all; typeclasses eauto.
+Qed.
+
+#[global] Instance MsubstFilterSame_rty: MsubstFilterSame rty.
+Proof.
+  eapply MsubstFilterSame_all; typeclasses eauto.
 Qed.

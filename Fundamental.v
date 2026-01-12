@@ -3,7 +3,7 @@ From stdpp Require Import natmap.
 From Stdlib.Program Require Import Wf.
 From CT Require Import Syntax Lc OperationalSemantics BasicTypingProp Instantiation Denotation Typing InstantiationProp DenotationProp.
 
-Import BaseDef Lang MyTactics Primitives OperationalSemantics BasicTyping Qualifier RefinementType Instantiation ListCtx List LangLc Lc QualifierLc Denotation Typing InstantiationProp DenotationProp.
+Import BaseDef Lang MyTactics Primitives OperationalSemantics BasicTyping Qualifier RefinementType Instantiation ListCtx List LangLc Lc QualifierLc Denotation Typing InstantiationLc InstantiationProp DenotationProp.
 
 (** * Main metatheoretic results *)
 
@@ -42,45 +42,6 @@ Ltac ctx_erase_tac :=
   | [H: _ |- context [ ⌊_ ++ [(_, _)]⌋* ] ] => rewrite ctx_erase_app_r by my_set_solver
   end.
 
-Ltac restructure_typing HOrg :=
-  match goal with
-  | [H: ctxEnv ?Γ _, HJ: _ ⊢ _ ⋮merge _ ⋮= _ |- (⟦(m{ _ }) ?τ⟧) ((m{ _ }) ?e)] =>
-      assert (Γ ⊢ e ⋮ τ) as HOrg by (eapply TMerge in HJ; eauto)
-  | [H: ctxEnv ?Γ _ |- (⟦(m{ _ }) ?τ⟧) ((m{ _ }) ?e)] =>
-      assert (Γ ⊢ e ⋮ τ) as HOrg by
-        (solve [eapply TValue; eauto] ||
-           solve [eapply TSub; eauto] ||
-             solve [eapply TMerge; eauto] ||
-               solve [eapply TLetE; eauto] ||
-                   solve [eapply TAppOverParam; eauto] ||
-                     solve [eapply TAppFuncParam; eauto] ||
-                       solve [eapply TAppOp; eauto] ||
-                         solve [eapply TMatchbTrue; eauto] ||
-                           solve [eapply TMatchbFalse; eauto]
-        )
-  | [H: ctxEnv ?Γ _ |- (⟦(m{ _ }) ?τ⟧) (treturn (m{_} ?e))] =>
-      assert (Γ ⊢ e ⋮ τ) as HOrg by
-        (solve [eapply TSubPP; eauto] ||
-           solve [eapply TConst; eauto] ||
-             solve [eapply TBaseVar; eauto] ||
-               solve [eapply TFuncVar; eauto] ||
-                 solve [eapply TFun; eauto] ||
-                   solve [eapply TFix; eauto]
-        )
-  end.
-
-(* Ltac restructure_typing_regular :=
-  let HOrg := fresh "HOrg" in
-  restructure_typing HOrg;
-  match goal with
-  | [H: ctxEnv ?Γ _, HOrg: ?Γ ⊢ ?e ⋮ ?τ |- (⟦(m{ _ }) ?τ⟧) ((m{_} ?e))] =>
-      pose (refinement_typing_regular_basic_typing _ _ _ HOrg) as HBTOrg;
-      pose (msubst_preserves_basic_typing_tm_empty _ _  H _ _ HBTOrg) as HBTOrgMsubst
-  | [H: ctxEnv ?Γ _, HOrg: ?Γ ⊢ ?e ⋮ ?τ |- (⟦(m{ _ }) ?τ⟧) (treturn (m{_} ?e))] =>
-      pose (refinement_typing_regular_basic_typing _ _ _ HOrg) as HBTOrg;
-      pose (msubst_preserves_basic_typing_value_empty _ _  H _ _ HBTOrg) as HBTOrgMsubst
-  end. *)
-
 Ltac auto_exists_env :=
 match goal with
 | [H: exists w, _ |- exists _, _] =>
@@ -95,24 +56,69 @@ Proof.
   destruct Γ; listctx_set_simpl; sinvert H0.
 Qed.
 
-Lemma mk_eq_constant_lc c : lc (mk_eq_constant c).
+Lemma mk_eq_value_lc b (v: value) : lc v -> lc [:b|b0:v=v].
 Proof.
   econstructor. unshelve (repeat econstructor). exact ∅.
-  my_set_solver.
+  misc_solver.
+  misc_solver.
 Qed.
 
-Lemma mk_eq_constant_denote_rty c:
-  ⟦ mk_eq_constant c ⟧ (treturn (vconst c)).
+Lemma mk_eq_constant_lc c : lc (mk_eq_constant c).
 Proof.
-  unfold mk_eq_constant. ln_simpl.
+  apply mk_eq_value_lc. misc_solver.
+Qed.
+
+Lemma mk_eq_value_denote_rty (b: base_ty) (v: value):
+  ∅ ⊢ v ⋮ TBase b ->
+  ⟦ [:b|b0:v=v] ⟧ (treturn v).
+Proof.
   repeat split; eauto.
   + misc_solver.
-  + apply mk_eq_constant_lc.
+  + misc_solver.
+  + apply mk_eq_value_lc. misc_solver.
   + intros. 
     pose value_reduction_any_ctx.
-    destruct v; ln_simpl; try hauto.
-    auto_apply. lc_solver.
+    destruct v, v0; ln_simpl; try hauto.
+    - auto_apply. lc_solver.
+    - sinvert H. 
 Qed.
+
+Ltac restructure_typing HOrg :=
+match goal with
+| [H: ⟦?Γ⟧ _ |- context [(⟦(m{_}) ?τ⟧) ((m{_}) (treturn ?v))]] =>
+assert (Γ ⊢r v ⋮ τ) as HOrg
+ by
+  (solve [eapply TSubPP; eauto] ||
+     solve [eapply TConst; eauto] ||
+       solve [eapply TBaseVar; eauto] ||
+         solve [eapply TFuncVar; eauto] ||
+           solve [eapply TFun; eauto] ||
+             solve [eapply TFix; eauto]
+  )
+| [H: ⟦?Γ⟧ _, HJ: _ ⊢ _ ⋮merge _ ⋮= _ |- context [(⟦(m{ _ }) ?τ⟧) ((m{ _ }) ?e)]] =>
+    assert (Γ ⊢ e ⋮ τ) as HOrg by (eapply TMerge in HJ; eauto)
+| [H: ⟦?Γ⟧ _ |- context [(⟦(m{_}) ?τ⟧) ((m{_}) ?e)]] =>
+    assert (Γ ⊢ e ⋮ τ) as HOrg by
+      (solve [eapply TValue; eauto] ||
+         solve [eapply TSub; eauto] ||
+           solve [eapply TMerge; eauto] ||
+             solve [eapply TLetE; eauto] ||
+                 solve [eapply TAppOverParam; eauto] ||
+                   solve [eapply TAppFuncParam; eauto] ||
+                     solve [eapply TAppOp; eauto] ||
+                       solve [eapply TMatchbTrue; eauto] ||
+                         solve [eapply TMatchbFalse; eauto]
+      )
+end.
+
+Ltac restructure_typing_regular :=
+  let HOrg := fresh "HOrg" in
+  restructure_typing HOrg;
+  match goal with
+  | [H: ⟦?Γ⟧ _, HOrg: ?Γ ⊢r ?e ⋮ ?τ |- _ ] =>
+      pose (refinement_typing_regular_basic_typing _ _ _ HOrg) as HBTOrg;
+      pose (msubst_preserves_basic_typing_empty _ _  H _ _ HBTOrg) as HBTOrgMsubst
+  end.
 
 (** Combined fundamental theorem for value typing (refinemnet types) and term
   typing (Hoare automata types) *)
@@ -145,28 +151,87 @@ Proof.
     eauto.
   (* [TConst] *)
   - intros Γ c HWF σ Hσ. exists σ.
+    assert (closed_env σ) as Htmp1 by misc_solver.
     repeat split; eauto.
     simp_tac; eauto.
-    apply mk_eq_constant_denote_rty.
+    apply mk_eq_value_denote_rty. misc_solver.
   (* [TBaseVar] *)
   - intros Γ x b ϕ Hwf Hfind σ Hσ. exists σ.
+    assert (closed_env σ) as Htmp1 by misc_solver.
     repeat split; eauto.
-    Check ctxEnv_ctxfind.
-    Search ctxfind.
-    dup_hyp Hσ (fun H => eapply ctxEnv_ctxfind in H; eauto). simp_hyps.
-    repeat msubst_simp. rewrite H0.
-    destruct H1 as [H _].
-    sinvert H. cbn in H3.
-    dup_hyp H3 (fun H => apply basic_typing_base_canonical_form in H).
-    simp_hyps. subst. sinvert H3.
-    eauto using mk_eq_constant_denote_rty. misc_solver.
+    dup_hyp Hσ (fun H => eapply ctxEnv_ctxfind in H; eauto). 
+    destruct H as (v & Hσv & H).
+    simp_tac. rewrite Hσv. simpl in H.
+    apply mk_eq_value_denote_rty. misc_solver.
   (* [TFuncVar] *)
-  - intros Γ x ρ τ Hwf Hfind σ Hσ. exists σ. intuition. admit.
-    (* dup_hyp Hσ (fun H => eapply ctxEnv_ctxfind in H; eauto).
-    { simp_hyps. repeat msubst_simp. by rewrite H0. }
-    misc_solver. *)
+  - intros Γ x ρ τ Hwf Hfind σ Hσ. exists σ.
+    assert (closed_env σ) as Htmp1 by misc_solver.
+    repeat split; eauto.
+    dup_hyp Hσ (fun H => eapply ctxEnv_ctxfind in H; eauto).
+    destruct H as (v & Hσv & H).
+    simp_tac. rewrite Hσv. simpl in H. 
+    eauto.
   (* [TFun] *)
-  - intros Γ Tx ρ e τ L HWF Ht HDe He σ Hσ. exists σ. intuition. admit.
+  - intros Γ Tx ρ e τ L HWF Ht HDe He σ Hσ.
+    assert (closed_env σ) as Htmp1 by misc_solver.
+    restructure_typing_regular.
+    auto_pose_fv x. repeat specialize_with x.
+    unfold 
+    assert (exists v_x, ⟦ρ⟧ (treturn v_x)) as Hv_x by admit.
+    destruct Hv_x as (v_x & Hv_x).
+    ospecialize* (HDe (<[x := v_x]> σ) _); eauto. admit.
+    destruct HDe as (σx1 & Hσx1 & Heqx1 & HDe).
+    assert (exists σ', σx1 = <[x:=v_x]> σ') as Hσx1' by admit.
+    destruct Hσx1' as (σ' & Hσx1'). subst.
+    exists σ'.
+    assert ((⟦Γ⟧) σ') as HΓσ' by admit.
+    repeat split; eauto. admit.
+    Lemma denotation_application_lam Tx T ρ τ e :
+  is_coverage_rty τ -> Tx ⤍ T = ⌊ ρ⇨τ ⌋ ->
+  ∅ ⊢ vlam Tx e ⋮ Tx ⤍ T ->
+  stale (ρ⇨τ) = ∅ ->
+  (forall (v_x : value),
+      ⟦ρ⟧ (treturn v_x) ->
+      ⟦τ ^^ v_x⟧ (e ^^ v_x)) ->
+(⟦ρ⇨τ⟧) (treturn (vlam Tx e)). Admitted.
+assert (closed_env σ') by admit.
+  (* econstructor.
+  admit. repeat split. admit. admit.
+  exists (vlam Tx ((m{σ}) e)). split. pure_multistep_tac.
+  intros v_x Hv_x.
+  repeat rewrite_measure_irrelevant. *)
+  simp_tac.
+  eapply denotation_application_lam; eauto.
+  + misc_solver. admit.
+  + simpl; subst. misc_solver.
+  + misc_solver. admit.
+  + admit.
+   (* misc_solver. 
+    repeat rewrite fv_of_msubst_closed by eauto.
+    rewrite <- H1. my_set_solver. *)
+  + intros v_x' Hv_x'.
+    rewrite <- msubst_intro in HDe.
+    assert (v_x = v_x') as Hv_x_v_x by admit.
+    subst.
+    apply msubst_filter_same with (e:= (τ ^^ (vfvar x))) in Heqx1; eauto.
+    rewrite Heqx1 in HDe.
+    rewrite msubst_destruct_rev in HDe.
+    rewrite subst_intro in HDe.
+    rewrite msubst_open in HDe.
+    rewrite (msubst_fresh _ v_x) in HDe.
+    eauto.
+    all: misc_solver.
+    admit. admit. admit.
+    rewrite msubst_fresh in HDe at 2.
+    by misc_solver.
+    
+    rewrite subst_intro in HDe. by misc_solver.
+    misc_solver.
+    rewrite <- msubst_intro in HDe. by
+        (eauto using ctxEnv_closed_env, ctxEnv_lc, rtyR_closed_value;
+        simpl_fv; my_set_solver).
+    econstructor; eauto.
+  intuition. admit.
     (* restructure_typing_regular.
     repeat msubst_simp. subst.
     eapply denotation_application_lam; eauto.

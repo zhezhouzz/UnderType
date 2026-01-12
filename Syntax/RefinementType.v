@@ -31,14 +31,14 @@ Notation "ρ '⇨' τ" :=
 
 Definition is_under_base_rty (τ: rty) :=
   match τ with
-  | [: _ | _ ] => False
-  | _ => True
+  | [: _ | _ ] => True
+  | _ => False
   end.
 
 Definition is_over_base_rty (τ: rty) :=
   match τ with
-  | {: _ | _ } => False
-  | _ => True
+  | {: _ | _ } => True
+  | _ => False
   end.
 
 (* This measure function is used to guarantee termination of the denotation.

@@ -33,12 +33,7 @@ Fixpoint rtyR (gas: nat) (ρ: rty) (e: tm) : Prop :=
         | ρx ⇨ τ =>
             exists (v: value),
             e ↪* (treturn v) /\
-              match ρx with
-              | [: _ | _ ] =>
-                  forall (e_x: tm), rtyR gas' ρx e_x -> rtyR gas' τ (tletapp_arg_tm v e_x)
-              | _ =>
-                  forall (v_x: value), rtyR gas' ρx (treturn v_x) -> rtyR gas' (τ ^^ v_x) (tletapp_arg_value v v_x)
-              end
+                  (forall (v_x: value), rtyR gas' ρx (treturn v_x) -> rtyR gas' (τ ^^ v_x) (tletapp_arg_value v v_x))
         end
   end.
 
@@ -56,6 +51,8 @@ Inductive ctxEnv: listctx rty -> env -> Prop :=
   ⟦ m{ σ } (flip_rty τ)⟧ (treturn v) ->
   ctxEnv (Γ ++ [(x, τ)]) (<[x:=v]> σ).
 
+Global Hint Constructors ctxEnv: core.
+
 Fixpoint ctxOverBindings (Γ: listctx rty): aset :=
   match Γ with
   | [] => ∅
@@ -68,12 +65,102 @@ Fixpoint ctxOverBindings (Γ: listctx rty): aset :=
 
 Hint Unfold Denotation_rtyctx: class_simpl.
 
-Definition rtyR_env (Γ: listctx rty) (τ: rty) (e: tm) : Prop :=
-  forall σ2, ⟦ Γ ⟧ σ2 ->
-  exists σ1, ⟦ Γ ⟧ σ1 /\
-  [D ctxOverBindings Γ ∪ stale τ ] σ1 = [D ctxOverBindings Γ ∪ stale τ ] σ2 /\ ⟦ m{ σ2 } τ ⟧ ( m{ σ1 } e).
+Inductive wfEnv: listctx rty -> Prop :=
+| wfEnv_nil: wfEnv []
+| wfEnv_cons1: forall Γ (x: atom) (ρ: rty),
+  is_under_base_rty ρ ->
+  wfEnv Γ ->
+  ok_ctx (Γ ++ [(x, ρ)]) ->
+  (forall σ, ⟦Γ⟧ σ -> exists v, ⟦m{σ} (flip_rty ρ)⟧ (treturn v)) ->
+  wfEnv (Γ ++ [(x, ρ)])
+| wfEnv_cons2: forall Γ (x: atom) (ρ: rty),
+  ~ (is_under_base_rty ρ) ->
+  stale ρ ⊆ (ctxOverBindings Γ) ->
+  wfEnv Γ ->
+  ok_ctx (Γ ++ [(x, ρ)]) ->
+  wfEnv (Γ ++ [(x, ρ)]).
 
-Notation " '⟦' τ '⟧{' Γ '}' e" := (rtyR_env Γ τ e) (at level 20, format "⟦ τ ⟧{ Γ } e", Γ constr, τ constr, e constr).
+Global Hint Constructors wfEnv: core.
+
+Inductive rtyR_env (L: aset) : listctx rty -> (env -> env -> Prop) -> Prop :=
+| rtyR_env_nil: forall (P: env -> env -> Prop),
+  P ∅ ∅ ->
+  rtyR_env L [] P
+| rtyR_env_cons1: forall Γ (x: atom) (ρ: rty) (P: env -> env -> Prop),
+  ~ (is_under_base_rty ρ /\ x ∉ L) ->
+  rtyR_env L Γ (fun σ1 σ2 => 
+    forall v, 
+      ⟦m{σ1 ∪ σ2} (flip_rty ρ)⟧ (treturn v) ->
+      P (<[x:=v]> σ1) σ2
+  ) ->
+  rtyR_env L (Γ ++ [(x, ρ)]) P
+| rtyR_env_cons2: forall Γ (x: atom) (ρ: rty) (P: env -> env -> Prop),
+  is_under_base_rty ρ /\ x ∉ L ->
+  rtyR_env L Γ (fun σ1 σ2 => 
+    exists v, 
+      ⟦m{σ1 ∪ σ2} (flip_rty ρ)⟧ (treturn v) /\ P σ1 (<[x:=v]> σ2)
+  ) ->
+  rtyR_env L (Γ ++ [(x, ρ)]) P.
+
+Global Hint Constructors rtyR_env: core.
+
+Notation " '⟦' Γ '⟧{' L '}'" := (rtyR_env L Γ) (at level 20, format "⟦ Γ ⟧{ L }", Γ constr, L constr).
+
+Lemma rtyR_env_proper:
+  forall L Γ P1 P2,
+  (forall σ1 σ2, P1 σ1 σ2 -> P2 σ1 σ2) ->
+  rtyR_env L Γ P1 ->
+  rtyR_env L Γ P2.
+Proof.
+  intros L.
+  apply (rev_ind (fun Γ => forall P1 P2,
+    (forall σ1 σ2, P1 σ1 σ2 -> P2 σ1 σ2) ->
+    rtyR_env L Γ P1 ->
+    rtyR_env L Γ P2
+  )); intros; eauto.
+  - sinvert H0; eauto; listctx_set_simpl.
+  - destruct x as (x, ρ).
+    sinvert H1; eauto; listctx_set_simpl.
+    + apply rtyR_env_cons1; eauto.
+      eapply H; hauto.
+    + apply rtyR_env_cons2; eauto.
+      eapply H; hauto.
+Qed.
+
+Lemma stale_ctxOverBindings_tail_under: forall Γ x ρ,
+is_under_base_rty ρ ->
+stale (ctxOverBindings (Γ ++ [(x, ρ)])) = stale (ctxOverBindings Γ).
+Proof.
+  induction Γ; intros; listctx_set_simpl.
+  - destruct ρ; simpl in *; hauto.
+  - destruct r; simpl in *; eauto.
+    all: ln_simpl; my_set_solver.
+Qed.
+
+Lemma stale_ctxOverBindings_tail_over: forall Γ x ρ,
+~ is_under_base_rty ρ ->
+stale (ctxOverBindings (Γ ++ [(x, ρ)])) = stale (ctxOverBindings Γ ∪ {[x]}).
+Proof.
+  induction Γ; intros; listctx_set_simpl.
+  - destruct ρ; simpl in *; hauto.
+  - destruct r; simpl in *; eauto.
+    all: ln_simpl; my_set_solver.
+Qed.
+
+Lemma stale_ctxOverBindings_subset: forall Γ,
+stale (ctxOverBindings Γ) ⊆ stale Γ.
+Proof.
+  induction Γ; intros; listctx_set_simpl.
+  - hauto.
+  - destruct r; ln_simpl; my_set_solver.
+Qed.
+
+Lemma wfEnv_ok_ctx: forall Γ,
+wfEnv Γ ->
+ok_ctx Γ.
+Proof.
+  induction 1; eauto. econstructor.
+Qed.
 
 (** * Properties of denotation *)
 
@@ -112,14 +199,6 @@ Proof.
   - apply rtyR_typed_closed in H. mydestr. set_solver.
   - apply rtyR_typed_closed in H. hauto.
 Qed.
-
-Ltac map_simpl :=
-match goal with
-  | [H: context [ ∅ ∪ _ ] |- _ ] => rewrite map_empty_union in H
-  | [|- context [ ∅ ∪ _ ] ] => rewrite map_empty_union
-  | [H: context [ _ ∪ ∅ ] |- _ ] => rewrite map_union_empty in H
-  | [|- context [ _ ∪ ∅ ] ] => rewrite map_union_empty
-  end.
 
 Lemma ctxEnv_domain Γ σ : ctxEnv Γ σ -> stale Γ = stale σ.
 Proof.
@@ -398,3 +477,79 @@ Proof.
     rewrite reduction_mk_app_iff by auto.
     repeat eexists; eauto.
 Qed. *)
+
+Lemma rtyR_env_ground_truth: forall L Γ,
+  wfEnv Γ ->
+  rtyR_env L Γ (fun σ1 σ2 => ⟦ Γ ⟧ (σ1 ∪ σ2) /\ stale σ1 = stale Γ ∩ (ctxOverBindings Γ ∪ L) /\ stale σ2 = stale Γ ∖ (ctxOverBindings Γ ∪ L)).
+Proof.
+  intros L.
+  apply (rev_ind (fun Γ => wfEnv Γ -> rtyR_env L Γ (fun σ1 σ2 => ⟦ Γ ⟧ (σ1 ∪ σ2) /\ stale σ1 = stale Γ ∩ (ctxOverBindings Γ ∪ L) /\ stale σ2 = stale Γ ∖ (ctxOverBindings Γ ∪ L)))); intros; eauto.
+  - econstructor. repeat split; eauto.
+    + econstructor. 
+    + ln_simpl. my_set_solver.
+    + ln_simpl. my_set_solver.
+  - destruct x as (x, ρ).
+    assert (ok_ctx (l ++ [(x, ρ)])) by eauto using wfEnv_ok_ctx.
+    assert (x ∉ stale l). {
+      apply ok_ctx_destruct_tail in H1; mydestr; eauto.
+    }
+    pose proof (stale_ctxOverBindings_subset l).
+    sinvert H0; eauto; listctx_set_simpl.
+    destruct (decide (x ∉ L)).
+    + apply rtyR_env_cons2; eauto.
+      eapply (rtyR_env_proper); eauto.
+      intros σ1 σ2 (HH1 & HH2 & HH3).
+      assert (σ1 !! x = None). {
+        apply ctxEnv_regular in HH1.
+        ln_simpl. my_set_solver.
+      }
+      ospecialize (H8 _ HH1); eauto.
+      destruct H8 as (v & HH8).
+      eexists. repeat split; eauto.
+      rewrite <- insert_union_r; eauto.
+        econstructor; eauto.
+      all: ln_simpl; setoid_rewrite stale_ctxOverBindings_tail_under; eauto;
+      my_set_solver.
+    + apply rtyR_env_cons1; eauto. hauto.
+      eapply (rtyR_env_proper); eauto.
+      intros σ1 σ2 (HH1 & HH2 & HH3) v Hv.
+      assert (σ1 !! x = None). {
+        apply ctxEnv_regular in HH1.
+        ln_simpl. my_set_solver.
+      }
+      repeat split; eauto.
+      rewrite <- insert_union_l; eauto.
+      econstructor; eauto.
+      all: ln_simpl; setoid_rewrite stale_ctxOverBindings_tail_under; eauto;
+      destruct (decide (x ∈ L)); my_set_solver.
+    + apply rtyR_env_cons1; eauto. hauto.
+      eapply (rtyR_env_proper); eauto.
+      intros σ1 σ2 (HH1 & HH2 & HH3) v Hv.
+      assert (σ1 !! x = None). {
+        apply ctxEnv_regular in HH1.
+        ln_simpl. my_set_solver.
+      }
+      repeat split; eauto.
+      rewrite <- insert_union_l; eauto.
+      econstructor; eauto.
+      all: ln_simpl; setoid_rewrite stale_ctxOverBindings_tail_over; eauto;
+      ln_simpl; my_set_solver.
+Qed.
+
+Lemma rtyR_env_with_assumption: forall L Γ P,
+  wfEnv Γ ->
+  (forall σ1 σ2,
+  ⟦ Γ ⟧ (σ1 ∪ σ2) ->
+  stale σ1 = stale Γ ∩ (ctxOverBindings Γ ∪ L) ->
+  stale σ2 = stale Γ ∖ (ctxOverBindings Γ ∪ L) ->
+  (* stale σ1 ∩ stale σ2 = ∅ -> *)
+  P σ1 σ2) ->
+  rtyR_env L Γ P.
+Proof.
+  intros.
+  eapply rtyR_env_proper with (P1 := 
+  (fun σ1 σ2 => ⟦ Γ ⟧ (σ1 ∪ σ2) /\ stale σ1 = stale Γ ∩ (ctxOverBindings Γ ∪ L) /\ stale σ2 = stale Γ ∖ (ctxOverBindings Γ ∪ L))
+  ).
+  hauto.
+  apply rtyR_env_ground_truth; eauto.
+Qed.

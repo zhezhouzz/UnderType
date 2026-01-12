@@ -478,6 +478,8 @@ Ltac my_set_simpl :=
 
 Ltac my_map_simpl_aux :=
   match goal with
+  | [H: context [ dom (<[_:=_]> _) ] |- _ ] => rewrite dom_insert_L in H
+  | [|- context [ dom (<[_:=_]> _) ] ] => rewrite dom_insert_L
   | [H: context [ ∅ ∪ _ ] |- _ ] => rewrite map_empty_union in H
   | [|- context [ ∅ ∪ _ ] ] => rewrite map_empty_union
   | [H: context [ _ ∪ ∅ ] |- _ ] => rewrite map_union_empty in H
