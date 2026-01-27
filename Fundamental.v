@@ -79,7 +79,7 @@ Proof.
   + intros. 
     pose value_reduction_any_ctx.
     destruct v, v0; ln_simpl; try hauto.
-    - auto_apply. lc_solver.
+    - subst. auto_apply. lc_solver.
     - sinvert H. 
 Qed.
 
@@ -120,21 +120,32 @@ Ltac restructure_typing_regular :=
       pose (msubst_preserves_basic_typing_empty _ _  H _ _ HBTOrg) as HBTOrgMsubst
   end.
 
+Lemma rtyR_env_weakening: forall P,
+  rtyR_env ∅ [] P ->
+  (forall σ1 σ2, P σ1 σ2 <-> P σ1 σ2) ->
+  (forall L Γ, wfEnv Γ -> rtyR_env L Γ P).
+Proof.
+Admitted.
+
 (** Combined fundamental theorem for value typing (refinemnet types) and term
   typing (Hoare automata types) *)
 Theorem fundamental_combined:
   well_formed_builtin_typing ->
   (forall (Γ: listctx rty) (v: value) (ρ: rty),
-      Γ ⊢r v ⋮ ρ -> ⟦ ρ ⟧{ Γ } (treturn v)) /\
+      Γ ⊢r v ⋮ ρ -> Γ ⊨⟦ ρ ⟧ (treturn v) ) /\
     (forall (Γ: listctx rty) (e: tm) (τ: rty),
-        Γ ⊢r e ⋮ τ -> ⟦ τ ⟧{ Γ } e).
+        Γ ⊢r e ⋮ τ -> Γ ⊨⟦ τ ⟧ e ).
 Proof.
   (* pose value_reduction_any_ctx as HPureStep. *)
   intros HWFbuiltin.
   apply value_term_type_check_mutind.
   (* [TSubPP] *)
-  - intros Γ v ρ1 ρ2 HWFρ2 _ HDρ1 Hsub σ Hσ. exists σ.
-    repeat split; eauto.
+  - intros Γ v ρ1 ρ2 HWFρ2 _ HDρ1 Hsub.
+    assert (wfEnv Γ) as HwfEnv by admit.
+    assert (stale ρ1 = ∅) as Hstale1 by admit.
+    apply rtyR_env_proper_plus with (P1 := fun σ1 σ2 => ⟦ m{ σ1 } ρ1 ⟧ (m{ σ1 ∪ σ2 } (treturn v))); auto.
+    apply rtyR_env_weakening; eauto. hauto.
+    intros σ1 σ2 HσD Hσ1 Hσ2 HD.
     sinvert Hsub. mydestr.
     ospecialize (H3 ∅ _). { econstructor. }
     destruct H3 as (σ1 & Hσ1 & Heq1 & H3).

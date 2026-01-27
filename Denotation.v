@@ -658,17 +658,19 @@ Qed.
 
 Lemma rtyR_env_proper_plus: forall L Γ P1 P2,
   wfEnv Γ ->
+  rtyR_env L Γ P1 ->
   (forall σ1 σ2, 
   ⟦ Γ ⟧ (σ1 ∪ σ2) ->
   stale σ1 = stale Γ ∩ (ctxOverBindings Γ ∪ L) ->
   stale σ2 = stale Γ ∖ (ctxOverBindings Γ ∪ L) ->
   P1 σ1 σ2 -> P2 σ1 σ2) ->
-  rtyR_env L Γ P1 ->
   rtyR_env L Γ P2.
 Proof.
   intros.
   apply rtyR_env_ground_truth_P; eauto.
   eapply rtyR_env_proper.
-  2: apply H1.
+  2: apply H0.
   hauto.
 Qed.
+
+Notation " Γ ⊨⟦ τ ⟧ e " := (rtyR_env (stale τ) Γ (fun σ1 σ2 => ⟦ m{ σ1 } τ ⟧ (m{ σ1 ∪ σ2 } e) )) (at level 20, format "Γ ⊨⟦ τ ⟧ e", Γ constr, τ constr, e constr).
