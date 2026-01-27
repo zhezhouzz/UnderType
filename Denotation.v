@@ -547,9 +547,128 @@ Lemma rtyR_env_with_assumption: forall L Γ P,
   rtyR_env L Γ P.
 Proof.
   intros.
-  eapply rtyR_env_proper with (P1 := 
-  (fun σ1 σ2 => ⟦ Γ ⟧ (σ1 ∪ σ2) /\ stale σ1 = stale Γ ∩ (ctxOverBindings Γ ∪ L) /\ stale σ2 = stale Γ ∖ (ctxOverBindings Γ ∪ L))
-  ).
+  eapply rtyR_env_proper.
+  2: apply rtyR_env_ground_truth; eauto.
   hauto.
-  apply rtyR_env_ground_truth; eauto.
+Qed.
+
+Lemma rtyR_env_ground_truth_P: forall L Γ P,
+  wfEnv Γ ->
+  rtyR_env L Γ (fun σ1 σ2 => 
+  ⟦ Γ ⟧ (σ1 ∪ σ2) ->
+  stale σ1 = stale Γ ∩ (ctxOverBindings Γ ∪ L) ->
+  stale σ2 = stale Γ ∖ (ctxOverBindings Γ ∪ L) ->
+  P σ1 σ2) ->
+  rtyR_env L Γ P.
+Proof.
+    intros L.
+    apply (rev_ind 
+    (fun Γ => forall P, wfEnv Γ -> 
+    rtyR_env L Γ (fun σ1 σ2 => 
+    ⟦ Γ ⟧ (σ1 ∪ σ2) ->
+    stale σ1 = stale Γ ∩ (ctxOverBindings Γ ∪ L) ->
+    stale σ2 = stale Γ ∖ (ctxOverBindings Γ ∪ L) ->
+    P σ1 σ2) ->
+    rtyR_env L Γ P)); intros; eauto.
+    - sinvert H0; eauto; listctx_set_simpl. econstructor.
+      apply H1. 
+      + econstructor. 
+      + ln_simpl. my_set_solver.
+      + ln_simpl. my_set_solver.
+    - destruct x as (x, ρ).
+      assert (ok_ctx (l ++ [(x, ρ)])) by eauto using wfEnv_ok_ctx.
+      assert (x ∉ stale l). {
+        apply ok_ctx_destruct_tail in H2; mydestr; eauto.
+      }
+      pose proof (stale_ctxOverBindings_subset l).
+      sinvert H1; eauto; listctx_set_simpl;
+      destruct (decide (x ∉ L));
+      sinvert H0; eauto; listctx_set_simpl.
+      + hauto.
+      + apply rtyR_env_cons1; eauto.
+        eapply H; eauto. clear H.
+        eapply rtyR_env_proper; eauto. clear H7.
+        simpl.
+        intros σ1 σ2 HH HHD HH1 HH2 v Hv. 
+        assert (σ1 !! x = None). {
+          apply ctxEnv_regular in HHD.
+          mydestr. setoid_rewrite H0 in H3.
+          autounfold with class_simpl in *.
+          my_set_solver.
+        }
+        apply HH; eauto; clear HH.
+        rewrite <- insert_union_l; eauto.
+          econstructor; eauto.
+        all: ln_simpl; setoid_rewrite stale_ctxOverBindings_tail_over; eauto;
+        ln_simpl; my_set_solver.
+      + apply rtyR_env_cons1; eauto.
+        eapply H; eauto. clear H.
+        eapply rtyR_env_proper; eauto. clear H7.
+        simpl.
+        intros σ1 σ2 HH HHD HH1 HH2 v Hv. 
+        assert (σ1 !! x = None). {
+          apply ctxEnv_regular in HHD.
+          mydestr. setoid_rewrite H0 in H3.
+          autounfold with class_simpl in *.
+          my_set_solver.
+        }
+        apply HH; eauto; clear HH.
+        rewrite <- insert_union_l; eauto.
+          econstructor; eauto.
+        all: ln_simpl; setoid_rewrite stale_ctxOverBindings_tail_under; eauto;
+        destruct (decide (x ∈ L)); my_set_solver.
+      + apply rtyR_env_cons1; eauto.
+        eapply H; eauto. clear H.
+        eapply rtyR_env_proper; eauto. clear H7.
+        simpl.
+        intros σ1 σ2 HH HHD HH1 HH2 v Hv. 
+        assert (σ1 !! x = None). {
+          apply ctxEnv_regular in HHD.
+          mydestr. setoid_rewrite H0 in H3.
+          autounfold with class_simpl in *.
+          my_set_solver.
+        }
+        apply HH; eauto; clear HH.
+        rewrite <- insert_union_l; eauto.
+          econstructor; eauto.
+        all: ln_simpl; setoid_rewrite stale_ctxOverBindings_tail_over; eauto;
+        ln_simpl; my_set_solver. 
+      + apply rtyR_env_cons2; eauto.
+        eapply H; eauto. clear H.
+        eapply rtyR_env_proper; eauto. clear H7.
+        simpl.
+        intros σ1 σ2 HH HHD HH1 HH2.
+        assert (σ1 !! x = None). {
+          apply ctxEnv_regular in HHD.
+          mydestr. setoid_rewrite H0 in H3.
+          autounfold with class_simpl in *.
+          my_set_solver.
+        }
+        destruct HH as (v & Hv & HH). exists v.
+        split; eauto.
+        apply HH; eauto; clear HH.
+        rewrite <- insert_union_r; eauto.
+          econstructor; eauto.
+        all: ln_simpl; setoid_rewrite stale_ctxOverBindings_tail_under; eauto;
+        my_set_solver.
+      + hauto.
+      + hauto.
+      + hauto.  
+Qed.
+
+Lemma rtyR_env_proper_plus: forall L Γ P1 P2,
+  wfEnv Γ ->
+  (forall σ1 σ2, 
+  ⟦ Γ ⟧ (σ1 ∪ σ2) ->
+  stale σ1 = stale Γ ∩ (ctxOverBindings Γ ∪ L) ->
+  stale σ2 = stale Γ ∖ (ctxOverBindings Γ ∪ L) ->
+  P1 σ1 σ2 -> P2 σ1 σ2) ->
+  rtyR_env L Γ P1 ->
+  rtyR_env L Γ P2.
+Proof.
+  intros.
+  apply rtyR_env_ground_truth_P; eauto.
+  eapply rtyR_env_proper.
+  2: apply H1.
+  hauto.
 Qed.

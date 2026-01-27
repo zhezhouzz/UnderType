@@ -188,7 +188,8 @@ Proof.
   unfold LcSubst.
   intros x u ϕ Hlc Hu.
   sinvert Hlc.
-  destruct ϕ. ln_simpl. simplify_eq.
+  destruct ϕ. ln_simpl.
+  simplify_eq.
   econstructor.
   srewrite Vector.to_list_Forall.
   srewrite Vector.to_list_map.

@@ -332,7 +332,7 @@ Proof.
   - destruct (<[i:=x0]> m !! atom) eqn: Hx.
     + exfalso. unfold closed_env in H2.
       eapply map_Forall_lookup_1 in H2; eauto.
-      ln_simpl.
+      ln_simpl. simplify_map_eq.
     + split; auto. inversion H3. subst. apply not_elem_of_dom in Hx. eauto.
 Qed.
 
@@ -437,5 +437,6 @@ Ltac simp_tac := repeat simp_tac_aux.
 Ltac misc_solver :=
   simp_tac;
   ln_simpl;
+  simplify_map_eq;
   eauto;
   try solve [try basic_typing_solver; try fine_rty_solver; try ok_solver; try lc_set_solver].

@@ -26,11 +26,10 @@ Lemma ctx_erase_lookup Γ x ρ :
   ⌊Γ⌋* !! x = Some ⌊ρ⌋.
 Proof.
   induction Γ; simpl; intros; try easy.
-  destruct a. case_decide. simplify_eq.
-  cbn. simplify_map_eq. reflexivity.
-  simp_hyps.
-  cbn. rewrite insert_empty. rewrite <- insert_union_singleton_l.
-  simplify_map_eq. reflexivity.
+  destruct a. case_decide; simplify_eq.
+  - cbn. eapply lookup_union_Some_l.
+    simplify_map_eq; auto.
+  - cbn. rewrite lookup_union. rewrite lookup_insert. simplify_map_eq; auto.
 Qed.
 
 Lemma ctx_erase_app Γ Γ':
@@ -45,7 +44,7 @@ Qed.
 Lemma ctx_erase_dom' Γ :
   stale ⌊Γ⌋* ≡ stale Γ.
 Proof.
-  induction Γ; ln_simpl; my_set_solver.
+  induction Γ; ln_simpl; cbn; my_set_solver.
 Qed.
 
 Lemma ctx_erase_dom Γ :

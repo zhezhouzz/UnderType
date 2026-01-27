@@ -65,7 +65,7 @@ Ltac ln_simpl :=
   MyTactics.my_set_simpl;
   MyTactics.my_map_simpl;
   listctx_set_simpl;
-  simplify_map_eq;
+  (* simplify_map_eq; *) (** Note: unstable stdpp branch may get stuck on this *)
   do 3 fold_syntax_class;
   MyTactics.my_set_simpl;
   MyTactics.my_map_simpl.

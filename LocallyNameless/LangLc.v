@@ -828,7 +828,7 @@ Proof.
            (fun (e: tm) => forall (k: nat), {k <~ x} ({y := u } e) = {y := u } ({k <~ x} e))
         ); simpl; intros; auto; ln_simpl; rewrite_by_set_solver2; auto;
   try (ln_simpl; hauto).
-  - ln_simpl; auto. rewrite close_fresh_rec; auto.
+  - ln_simpl; try rewrite close_fresh_rec; hauto.
 Qed.
 Arguments SubstClose_tm /.
 
@@ -840,7 +840,7 @@ Proof.
            (fun (e: tm) => forall (k: nat), {k <~ x} ({y := u } e) = {y := u } ({k <~ x} e))
         ); simpl; intros; auto; ln_simpl; rewrite_by_set_solver2; auto;
   try (ln_simpl; hauto).
-  - ln_simpl; auto. rewrite close_fresh_rec; auto.
+  - ln_simpl; try rewrite close_fresh_rec; hauto.
 Qed.
 Arguments SubstClose_value /.
 

@@ -240,7 +240,7 @@ Proof.
   try match goal with
   | [|- _ ∉ _ ] => my_set_solver
   | [|- _ ⊢ _ ⋮ _ ] => eapply basic_typing_weaken_insert; eauto; my_set_solver
-  | _ => apply insert_commute; my_set_solver 
+  | _ => apply insert_insert_ne; my_set_solver 
   end.
 Qed.
 Arguments BasicTypingSubst_tm /.
@@ -266,7 +266,7 @@ Proof.
   try match goal with
   | [|- _ ∉ _ ] => my_set_solver
   | [|- _ ⊢ _ ⋮ _ ] => eapply basic_typing_weaken_insert; eauto; my_set_solver
-  | _ => apply insert_commute; my_set_solver 
+  | _ => apply insert_insert_ne; my_set_solver 
   end.
 Qed.
 Arguments BasicTypingSubst_value /.
@@ -339,6 +339,7 @@ try match goal with
         solve [rewrite lookup_insert_ne in * by fast_set_solver!!; eauto]
 end;
 repeat match goal with
+| [ |- context [ decide (_ = _) ] ] => case_decide; auto; try congruence
 | [H:  <[?x:=_]> _ !! ?x = _ |- _ ] =>
   setoid_rewrite lookup_insert in H; eauto; simplify_eq
 | [H: <[?y:=_]> _ !! ?x = _ |- _ ] =>
@@ -358,8 +359,9 @@ end.
 Ltac lc_set_solver :=
   lc_solver;
   match goal with
+  | [ |- context [ decide (_ = _) ] ] => case_decide; auto; try congruence
   | [ |- ?x # {_ ~> _} _] =>
-        solve [eapply not_elem_of_weaken; [ | apply open_fv ]; ln_simpl; fast_set_solver!!]
+        solve [eapply not_elem_of_weaken; [ | apply open_fv ]; ln_simpl; simplify_map_eq; fast_set_solver!!]
   | [ |- _ !! _ = _ ] => aset_solver
   | [ |- _ ⊆ ?M ] =>
     match type of M with
@@ -382,7 +384,7 @@ Proof.
     econstructor_L; ln_simpl; fold_typing_class.
     all:
       econstructor_L; auto_specialization; ln_simpl; fold_typing_class;
-      try rewrite insert_commute in * by my_set_solver;
+      try rewrite insert_insert_ne in * by my_set_solver;
       match goal with
       | [ |-  _ !! _ = _ ] => lc_set_solver
       | H: <[ ?x := ?Tx]> ?Γ ⊢ ?e ⋮ _ |- ?Γ ⊢ ?e ⋮ _ => 
@@ -431,10 +433,10 @@ Proof.
   simpl. econstructor. econstructor. simplify_map_eq. reflexivity.
 Qed.
 
-Ltac basic_typing_solver :=
-fold_typing_class;
-repeat
- (match goal with
+Ltac basic_typing_solver_aux :=
+(match goal with
+| [H: ?Γ ⊢ ?e ⋮ _ |- <[ _ := _ ]> ?Γ ⊢ ?e ⋮ _ ] =>
+  apply basic_typing_weaken_insert; eauto; lc_set_solver
 | [H: ?g ⊢ (treturn ?v) ⋮ ?t |- _ ⊢ ?v ⋮ _ ] => sinvert H; eauto
 | [ H: ?g ⊢ ?e ⋮ ?T, H': ?g ⊢ ?e ⋮ ?T |- _ ] => clear H'
 | [ H: ?g ⊢ ?e ⋮ ?T, H': ?g ⊢ ?e ⋮ ?T |- _ ] => clear H'
@@ -446,8 +448,6 @@ repeat
   let Hop := fresh "Hop" in
   pose proof (value_of_op_regular_basic_typing op) as Hop;
   eapply basic_typing_weaken in Hop; eauto; try lc_set_solver
-| [H: ?Γ ⊢ ?e ⋮ _ |- <[ _ := _ ]> ?Γ ⊢ ?e ⋮ _ ] =>
-  apply basic_typing_weaken_insert; eauto; lc_set_solver
 | [H: <[ _ := _ ]> ?Γ ⊢ ?e ⋮ _ |-  ?Γ ⊢ ?e ⋮ _ ] =>
   apply basic_typing_strengthen in H; eauto; lc_set_solver
 | [H: _ ⊢ ?e ^^ (vfvar ?z) ⋮ _ |- _ ⊢ ?e ^^ _ ⋮ _ ] =>
@@ -455,8 +455,13 @@ repeat
 | |- _ ⊢ (vfvar ?x) ⋮ _ =>
   econstructor; aset_solver
 | |- _ ⊢ _ ⋮ _ =>
-  L_econstructor_specialized; smart_ln_simpl
+  L_econstructor_specialized; smart_ln_simpl; simplify_map_eq
 end; fold_typing_class; eauto).
+
+Ltac basic_typing_solver :=
+fold_typing_class;
+repeat
+  basic_typing_solver_aux.
 
 Lemma mk_app_has_type Γ e v T1 T2 :
   Γ ⊢ e ⋮ T1 ⤍ T2 ->
@@ -484,7 +489,7 @@ repeat (match goal with
   sinvert H; ln_simpl; aset_solver
 | [H: _ ⊢ (treturn _) ⋮ _ |- _ ] =>
   sinvert H; ln_simpl
-end; fold_typing_class; eauto).
+end; simplify_map_eq; fold_typing_class; eauto).
 
 Lemma mk_app_has_type_inv Γ e v T2 :
   Γ ⊢ mk_app e v ⋮ T2 ->
